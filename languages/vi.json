@@ -1,0 +1,78 @@
+{
+  "app_name": "Genba AI Navi",
+  "welcome": "Chào mừng đến với Genba AI Navi",
+  "nav": {
+    "home": "Trang chủ",
+    "guide": "Hướng dẫn vận hành",
+    "troubleshoot": "Xử lý sự cố",
+    "safety": "Sổ tay an toàn",
+    "settings": "Cài đặt"
+  },
+  "home": {
+    "greeting": "Xin chào",
+    "quick_actions": "Thao tác nhanh",
+    "recent": "Lịch sử gần đây"
+  },
+  "guide": {
+    "title": "Hướng dẫn vận hành máy",
+    "search_placeholder": "Tìm theo tên máy hoặc mã số...",
+    "step": "Bước",
+    "next": "Tiếp",
+    "prev": "Trước",
+    "complete": "Hoàn thành",
+    "video": "Xem video",
+    "photo": "Xem ảnh"
+  },
+  "troubleshoot": {
+    "title": "Xử lý sự cố",
+    "input_placeholder": "Mô tả triệu chứng hoặc vấn đề...",
+    "ask_ai": "Hỏi AI",
+    "listening": "Đang nghe...",
+    "thinking": "AI đang tạo câu trả lời...",
+    "suggestion": "Giải pháp đề xuất",
+    "try_again": "Hỏi câu khác",
+    "voice_input": "Nhập bằng giọng nói",
+    "history": "Lịch sử câu hỏi"
+  },
+  "safety": {
+    "title": "Sổ tay an toàn",
+    "search_placeholder": "Tìm kiếm sổ tay...",
+    "categories": "Danh mục",
+    "emergency": "Ứng phó khẩn cấp",
+    "daily_check": "Kiểm tra hàng ngày",
+    "protective_equipment": "Thiết bị bảo hộ",
+    "open_pdf": "Mở PDF"
+  },
+  "settings": {
+    "title": "Cài đặt",
+    "language": "Ngôn ngữ",
+    "voice": "Cài đặt giọng nói",
+    "voice_speed": "Tốc độ đọc",
+    "voice_enabled": "Đọc thành tiếng",
+    "theme": "Giao diện",
+    "dark_mode": "Chế độ tối",
+    "font_size": "Cỡ chữ",
+    "ai_model": "Mô hình AI",
+    "offline_mode": "Chế độ ngoại tuyến"
+  },
+  "common": {
+    "loading": "Đang tải...",
+    "error": "Đã xảy ra lỗi",
+    "retry": "Thử lại",
+    "back": "Quay lại",
+    "close": "Đóng",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "confirm": "Xác nhận",
+    "yes": "Có",
+    "no": "Không",
+    "search": "Tìm kiếm",
+    "no_results": "Không tìm thấy kết quả"
+  },
+  "voice": {
+    "start": "Bắt đầu nhập giọng nói",
+    "stop": "Dừng nhập giọng nói",
+    "read_aloud": "Đọc to",
+    "not_supported": "Trình duyệt của bạn không hỗ trợ tính năng giọng nói"
+  }
+}

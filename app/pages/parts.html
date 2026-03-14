@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>部品管理 - 現場AIナビ</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <style>
+    .parts-page { padding: 16px; }
+
+    /* Stats */
+    .parts-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .parts-stat {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 8px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    .parts-stat .ps-num { font-size: 1.3em; font-weight: 700; }
+    .parts-stat .ps-num.green { color: var(--success); }
+    .parts-stat .ps-num.yellow { color: #e37400; }
+    .parts-stat .ps-num.red { color: var(--danger); }
+    .parts-stat .ps-num.blue { color: var(--primary); }
+    .parts-stat .ps-lbl { font-size: 0.65em; color: var(--text-secondary); margin-top: 2px; }
+
+    /* Alert banner */
+    .low-stock-alert {
+      background: #fef7e0;
+      border: 1px solid #f9ab00;
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      font-size: 0.85em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    [data-theme="dark"] .low-stock-alert { background: #3e2e00; }
+
+    .low-stock-alert.hidden { display: none; }
+
+    /* Tabs */
+    .parts-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+
+    .parts-tab {
+      flex: 1;
+      padding: 10px 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.8em;
+      text-align: center;
+      color: var(--text);
+    }
+
+    .parts-tab.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .parts-content { display: none; }
+    .parts-content.active { display: block; }
+
+    /* Toolbar */
+    .parts-toolbar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .parts-toolbar input {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9em;
+      background: var(--bg-card);
+      color: var(--text);
+    }
+
+    .parts-toolbar select {
+      padding: 10px 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.85em;
+      background: var(--bg-card);
+      color: var(--text);
+    }
+
+    /* Parts list */
+    .part-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .part-icon { font-size: 1.3em; flex-shrink: 0; }
+
+    .part-info { flex: 1; min-width: 0; }
+    .part-name { font-weight: 600; font-size: 0.9em; }
+    .part-code { font-size: 0.75em; color: var(--text-secondary); }
+    .part-machine { font-size: 0.7em; color: var(--text-secondary); margin-top: 2px; }
+
+    .part-stock {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .part-qty {
+      font-size: 1.1em;
+      font-weight: 700;
+    }
+
+    .part-qty.ok { color: var(--success); }
+    .part-qty.low { color: #e37400; }
+    .part-qty.critical { color: var(--danger); }
+    .part-qty.out { color: var(--danger); font-weight: 800; }
+
+    .part-unit { font-size: 0.7em; color: var(--text-secondary); }
+    .part-min { font-size: 0.65em; color: var(--text-secondary); }
+
+    .part-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .part-action-btn {
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      cursor: pointer;
+      font-size: 0.7em;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .part-action-btn.primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    /* Order list */
+    .order-card {
+      padding: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .order-id { font-weight: 600; font-size: 0.9em; }
+
+    .order-badge {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.7em;
+      font-weight: 600;
+    }
+
+    .order-badge.ordered { background: #e8f0fe; color: var(--primary); }
+    .order-badge.shipped { background: #fef7e0; color: #e37400; }
+    .order-badge.delivered { background: #e6f4ea; color: var(--success); }
+
+    .order-items { font-size: 0.83em; color: var(--text-secondary); margin-bottom: 4px; }
+    .order-date { font-size: 0.75em; color: var(--text-secondary); }
+
+    /* Usage log */
+    .usage-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 0.85em;
+    }
+
+    .usage-icon { font-size: 1em; }
+    .usage-info { flex: 1; }
+    .usage-part { font-weight: 500; }
+    .usage-detail { font-size: 0.8em; color: var(--text-secondary); }
+    .usage-qty { font-weight: 600; color: var(--danger); }
+    .usage-date { font-size: 0.75em; color: var(--text-secondary); white-space: nowrap; }
+
+    /* Modal */
+    .parts-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+
+    .parts-modal.hidden { display: none; }
+
+    .parts-modal-body {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 90%;
+      max-width: 420px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .parts-modal-body h3 { margin-bottom: 16px; font-size: 1.05em; }
+
+    .fm-row {
+      margin-bottom: 12px;
+    }
+
+    .fm-row label {
+      display: block;
+      font-size: 0.8em;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .fm-row input,
+    .fm-row select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9em;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .modal-btns {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 16px;
+    }
+
+    /* Barcode area */
+    .scan-area {
+      text-align: center;
+      padding: 20px;
+      background: var(--bg-card);
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      cursor: pointer;
+    }
+
+    .scan-area .scan-icon { font-size: 2.5em; }
+    .scan-area p { font-size: 0.85em; color: var(--text-secondary); margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="l-header">
+    <div class="l-header__left">
+      <button class="l-header__back" onclick="window.location.href='../index.html'">←</button>
+      <span class="l-header__title" id="page-title">部品管理</span>
+    </div>
+    <div class="l-header__actions">
+      <button id="scan-btn" style="background:rgba(255,255,255,0.2);border:none;color:#fff;padding:6px 10px;border-radius:16px;font-size:0.8em;cursor:pointer;">📷 スキャン</button>
+      <button id="add-btn" style="background:rgba(255,255,255,0.2);border:none;color:#fff;padding:6px 10px;border-radius:16px;font-size:0.8em;cursor:pointer;">＋ 追加</button>
+    </div>
+  </header>
+
+  <!-- Modal -->
+  <div class="parts-modal hidden" id="parts-modal">
+    <div class="parts-modal-body" id="modal-body"></div>
+  </div>
+
+  <div class="parts-page l-page">
+    <!-- Stats -->
+    <div class="parts-stats">
+      <div class="parts-stat">
+        <div class="ps-num blue" id="st-total">0</div>
+        <div class="ps-lbl" id="st-total-lbl">総品目</div>
+      </div>
+      <div class="parts-stat">
+        <div class="ps-num green" id="st-ok">0</div>
+        <div class="ps-lbl" id="st-ok-lbl">在庫十分</div>
+      </div>
+      <div class="parts-stat">
+        <div class="ps-num yellow" id="st-low">0</div>
+        <div class="ps-lbl" id="st-low-lbl">残少</div>
+      </div>
+      <div class="parts-stat">
+        <div class="ps-num red" id="st-out">0</div>
+        <div class="ps-lbl" id="st-out-lbl">欠品</div>
+      </div>
+    </div>
+
+    <!-- Low stock alert -->
+    <div class="low-stock-alert" id="low-alert">
+      <span>⚠️</span>
+      <span id="low-alert-text"></span>
+    </div>
+
+    <!-- Tabs -->
+    <div class="parts-tabs">
+      <button class="parts-tab active" data-tab="inventory">📦 在庫</button>
+      <button class="parts-tab" data-tab="orders">🚚 発注</button>
+      <button class="parts-tab" data-tab="usage">📋 使用履歴</button>
+    </div>
+
+    <!-- Tab: Inventory -->
+    <div class="parts-content active" id="tab-inventory">
+      <div class="parts-toolbar">
+        <input type="search" id="search-parts" placeholder="部品名・品番で検索...">
+        <select id="filter-stock">
+          <option value="">全て</option>
+          <option value="ok">在庫十分</option>
+          <option value="low">残少</option>
+          <option value="out">欠品</option>
+        </select>
+      </div>
+      <div id="parts-list"></div>
+    </div>
+
+    <!-- Tab: Orders -->
+    <div class="parts-content" id="tab-orders">
+      <div id="orders-list"></div>
+    </div>
+
+    <!-- Tab: Usage -->
+    <div class="parts-content" id="tab-usage">
+      <div id="usage-list"></div>
+    </div>
+  </div>
+
+  <script>
+    // ========== Init ==========
+    const lang = localStorage.getItem('genba-lang') || 'ja';
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('genba-theme') || 'light');
+    document.documentElement.setAttribute('data-fontsize', localStorage.getItem('genba-fontsize') || 'medium');
+
+    // ========== i18n ==========
+    const texts = {
+      ja: {
+        title: '部品管理', total: '総品目', ok: '在庫十分', low: '残少', out: '欠品',
+        search: '部品名・品番で検索...', all: '全て', inventory: '📦 在庫', orders: '🚚 発注', usage: '📋 使用履歴',
+        use: '使用', order: '発注', edit: '編集', min: '最低', unit: '個',
+        addTitle: '部品を追加', editTitle: '部品を編集', useTitle: '部品を使用',
+        orderTitle: '発注する', scanTitle: 'バーコードスキャン',
+        name: '部品名', code: '品番', machine: '対象機械', qty: '在庫数', minStock: '最低在庫',
+        useQty: '使用数', useReason: '使用理由', orderQty: '発注数', supplier: '仕入先',
+        save: '保存', cancel: 'キャンセル', confirm: '確定', scan: 'スキャンして検索',
+        lowAlert: '件の部品が最低在庫を下回っています',
+        ordered: '発注済み', shipped: '出荷済み', delivered: '納品済み',
+        pcs: '個', sets: 'セット',
+      },
+      en: {
+        title: 'Parts Management', total: 'Total', ok: 'In Stock', low: 'Low', out: 'Out',
+        search: 'Search by name or code...', all: 'All', inventory: '📦 Inventory', orders: '🚚 Orders', usage: '📋 Usage Log',
+        use: 'Use', order: 'Order', edit: 'Edit', min: 'Min', unit: 'pcs',
+        addTitle: 'Add Part', editTitle: 'Edit Part', useTitle: 'Use Part',
+        orderTitle: 'Place Order', scanTitle: 'Barcode Scan',
+        name: 'Part Name', code: 'Part Code', machine: 'Machine', qty: 'Quantity', minStock: 'Min Stock',
+        useQty: 'Use Qty', useReason: 'Reason', orderQty: 'Order Qty', supplier: 'Supplier',
+        save: 'Save', cancel: 'Cancel', confirm: 'Confirm', scan: 'Scan to search',
+        lowAlert: ' parts below minimum stock',
+        ordered: 'Ordered', shipped: 'Shipped', delivered: 'Delivered',
+        pcs: 'pcs', sets: 'sets',
+      },
+      th: {
+        title: 'จัดการอะไหล่', total: 'ทั้งหมด', ok: 'เพียงพอ', low: 'เหลือน้อย', out: 'หมด',
+        search: 'ค้นหาชื่อหรือรหัส...', all: 'ทั้งหมด', inventory: '📦 สต็อก', orders: '🚚 สั่งซื้อ', usage: '📋 ประวัติใช้',
+        use: 'ใช้', order: 'สั่ง', edit: 'แก้ไข', min: 'ขั้นต่ำ', unit: 'ชิ้น',
+        addTitle: 'เพิ่มอะไหล่', editTitle: 'แก้ไขอะไหล่', useTitle: 'ใช้อะไหล่',
+        orderTitle: 'สั่งซื้อ', scanTitle: 'สแกนบาร์โค้ด',
+        name: 'ชื่อ', code: 'รหัส', machine: 'เครื่อง', qty: 'จำนวน', minStock: 'ขั้นต่ำ',
+        useQty: 'จำนวนใช้', useReason: 'เหตุผล', orderQty: 'จำนวนสั่ง', supplier: 'ผู้จำหน่าย',
+        save: 'บันทึก', cancel: 'ยกเลิก', confirm: 'ยืนยัน', scan: 'สแกนเพื่อค้นหา',
+        lowAlert: ' อะไหล่ต่ำกว่าขั้นต่ำ',
+        ordered: 'สั่งแล้ว', shipped: 'จัดส่งแล้ว', delivered: 'รับแล้ว',
+        pcs: 'ชิ้น', sets: 'ชุด',
+      },
+      vi: {
+        title: 'Quản lý phụ tùng', total: 'Tổng', ok: 'Đủ', low: 'Ít', out: 'Hết',
+        search: 'Tìm theo tên hoặc mã...', all: 'Tất cả', inventory: '📦 Tồn kho', orders: '🚚 Đặt hàng', usage: '📋 Lịch sử dùng',
+        use: 'Dùng', order: 'Đặt', edit: 'Sửa', min: 'Tối thiểu', unit: 'cái',
+        addTitle: 'Thêm phụ tùng', editTitle: 'Sửa phụ tùng', useTitle: 'Sử dụng',
+        orderTitle: 'Đặt hàng', scanTitle: 'Quét mã',
+        name: 'Tên', code: 'Mã', machine: 'Máy', qty: 'Số lượng', minStock: 'Tối thiểu',
+        useQty: 'Số dùng', useReason: 'Lý do', orderQty: 'Số đặt', supplier: 'Nhà cung cấp',
+        save: 'Lưu', cancel: 'Hủy', confirm: 'Xác nhận', scan: 'Quét để tìm',
+        lowAlert: ' phụ tùng dưới mức tối thiểu',
+        ordered: 'Đã đặt', shipped: 'Đang giao', delivered: 'Đã nhận',
+        pcs: 'cái', sets: 'bộ',
+      },
+    };
+
+    const t = texts[lang] || texts.ja;
+    document.getElementById('page-title').textContent = t.title;
+    document.getElementById('st-total-lbl').textContent = t.total;
+    document.getElementById('st-ok-lbl').textContent = t.ok;
+    document.getElementById('st-low-lbl').textContent = t.low;
+    document.getElementById('st-out-lbl').textContent = t.out;
+    document.getElementById('search-parts').placeholder = t.search;
+
+    // ========== Parts Data ==========
+    let parts = [
+      { id: 'P-001', icon: '⚙️', name: { ja: 'ベアリング 6205', en: 'Bearing 6205', th: 'ตลับลูกปืน 6205', vi: 'Bạc đạn 6205' }, code: 'BRG-6205-2RS', machine: 'CNC旋盤 CK6140', machineId: 'cnc-001', qty: 8, min: 4, unit: t.pcs, supplier: 'NSK', price: 1200 },
+      { id: 'P-002', icon: '🔩', name: { ja: 'Oリング φ30', en: 'O-Ring φ30', th: 'โอริง φ30', vi: 'O-ring φ30' }, code: 'OR-30-NBR', machine: 'プレス機 AP-100', machineId: 'press-001', qty: 15, min: 10, unit: t.pcs, supplier: 'NOK', price: 80 },
+      { id: 'P-003', icon: '🔧', name: { ja: '溶接トーチチップ 1.2mm', en: 'Welding Torch Tip 1.2mm', th: 'หัวเชื่อม 1.2mm', vi: 'Đầu hàn 1.2mm' }, code: 'TIP-12-CU', machine: '溶接ロボット RW-200', machineId: 'welder-001', qty: 3, min: 5, unit: t.pcs, supplier: 'Panasonic', price: 350 },
+      { id: 'P-004', icon: '🛢', name: { ja: '切削油 水溶性 20L', en: 'Cutting Oil Water-soluble 20L', th: 'น้ำมันตัด 20L', vi: 'Dầu cắt hòa tan 20L' }, code: 'OIL-WS-20L', machine: 'CNC旋盤 CK6140', machineId: 'cnc-001', qty: 2, min: 2, unit: t.pcs, supplier: 'カストロール', price: 8500 },
+      { id: 'P-005', icon: '⚡', name: { ja: 'サーボモーター用エンコーダケーブル', en: 'Servo Motor Encoder Cable', th: 'สายเอ็นโค้ดเดอร์มอเตอร์เซอร์โว', vi: 'Cáp encoder servo motor' }, code: 'CBL-ENC-3M', machine: 'CNC旋盤 CK6140', machineId: 'cnc-001', qty: 1, min: 1, unit: t.pcs, supplier: 'FANUC', price: 12000 },
+      { id: 'P-006', icon: '🔩', name: { ja: '油圧ホース 1/2" 1m', en: 'Hydraulic Hose 1/2" 1m', th: 'สายไฮดรอลิก 1/2" 1m', vi: 'Ống thủy lực 1/2" 1m' }, code: 'HOSE-12-1M', machine: 'プレス機 AP-100', machineId: 'press-001', qty: 0, min: 2, unit: t.pcs, supplier: 'パーカー', price: 3500 },
+      { id: 'P-007', icon: '🛡', name: { ja: '安全光線センサーレンズ', en: 'Safety Light Curtain Lens', th: 'เลนส์เซ็นเซอร์แสงนิรภัย', vi: 'Ống kính cảm biến an toàn' }, code: 'LENS-SLC-01', machine: 'プレス機 AP-100', machineId: 'press-001', qty: 2, min: 1, unit: t.pcs, supplier: 'KEYENCE', price: 4500 },
+      { id: 'P-008', icon: '🔌', name: { ja: '溶接ワイヤー 1.2mm 15kg', en: 'Welding Wire 1.2mm 15kg', th: 'ลวดเชื่อม 1.2mm 15kg', vi: 'Dây hàn 1.2mm 15kg' }, code: 'WIRE-12-15', machine: '溶接ロボット RW-200', machineId: 'welder-001', qty: 4, min: 3, unit: t.pcs, supplier: '神戸製鋼', price: 6800 },
+      { id: 'P-009', icon: '🧤', name: { ja: '耐熱手袋（溶接用）', en: 'Heat-resistant Gloves (Welding)', th: 'ถุงมือทนความร้อน (เชื่อม)', vi: 'Găng tay chịu nhiệt (hàn)' }, code: 'GLV-HEAT-L', machine: '共通', machineId: 'common', qty: 6, min: 4, unit: t.sets || '双', supplier: 'ミドリ安全', price: 2800 },
+      { id: 'P-010', icon: '🔧', name: { ja: 'チャック爪（生爪セット）', en: 'Chuck Jaw Set (Soft Jaws)', th: 'ชุดฟันจับ (ฟันอ่อน)', vi: 'Bộ má kẹp (má mềm)' }, code: 'JAW-SOFT-8', machine: 'CNC旋盤 CK6140', machineId: 'cnc-001', qty: 1, min: 2, unit: t.sets || 'セット', supplier: '北川鉄工所', price: 15000 },
+    ];
+
+    let orders = [
+      { id: 'ORD-2026-042', date: '2026-03-12', status: 'ordered', items: [{ code: 'TIP-12-CU', name: '溶接トーチチップ', qty: 20 }], supplier: 'Panasonic', eta: '2026-03-18' },
+      { id: 'ORD-2026-041', date: '2026-03-10', status: 'shipped', items: [{ code: 'HOSE-12-1M', name: '油圧ホース', qty: 4 }, { code: 'OR-30-NBR', name: 'Oリング', qty: 30 }], supplier: 'パーカー/NOK', eta: '2026-03-15' },
+      { id: 'ORD-2026-038', date: '2026-03-01', status: 'delivered', items: [{ code: 'BRG-6205-2RS', name: 'ベアリング', qty: 10 }], supplier: 'NSK', eta: '2026-03-08' },
+    ];
+
+    let usageLog = [
+      { date: '2026-03-13 14:00', part: 'TIP-12-CU', partName: '溶接トーチチップ', qty: 2, user: '山本修', reason: '定期交換' },
+      { date: '2026-03-10 16:30', part: 'OR-30-NBR', partName: 'Oリング φ30', qty: 1, user: '山本修', reason: '油漏れ修理' },
+      { date: '2026-03-08 09:00', part: 'OIL-WS-20L', partName: '切削油 20L', qty: 1, user: '田中太郎', reason: '補充' },
+      { date: '2026-03-05 11:00', part: 'CBL-ENC-3M', partName: 'エンコーダケーブル', qty: 1, user: '山本修', reason: 'サーボ異常修理' },
+      { date: '2026-03-02 15:00', part: 'LENS-SLC-01', partName: '安全光線レンズ', qty: 1, user: '佐藤健一', reason: 'センサー誤検知対応' },
+    ];
+
+    // ========== Render ==========
+    function renderAll() {
+      renderStats();
+      renderParts();
+      renderOrders();
+      renderUsage();
+    }
+
+    function renderStats() {
+      const okCount = parts.filter(p => p.qty > p.min).length;
+      const lowCount = parts.filter(p => p.qty > 0 && p.qty <= p.min).length;
+      const outCount = parts.filter(p => p.qty === 0).length;
+
+      document.getElementById('st-total').textContent = parts.length;
+      document.getElementById('st-ok').textContent = okCount;
+      document.getElementById('st-low').textContent = lowCount;
+      document.getElementById('st-out').textContent = outCount;
+
+      const alertCount = lowCount + outCount;
+      const alert = document.getElementById('low-alert');
+      if (alertCount > 0) {
+        alert.classList.remove('hidden');
+        document.getElementById('low-alert-text').textContent = `${alertCount}${t.lowAlert}`;
+      } else {
+        alert.classList.add('hidden');
+      }
+    }
+
+    function renderParts(filter = '', stockFilter = '') {
+      const list = document.getElementById('parts-list');
+      let filtered = [...parts];
+
+      if (filter) {
+        const q = filter.toLowerCase();
+        filtered = filtered.filter(p =>
+          (p.name[lang] || p.name.ja).toLowerCase().includes(q) ||
+          p.code.toLowerCase().includes(q) ||
+          p.machine.toLowerCase().includes(q)
+        );
+      }
+
+      if (stockFilter === 'ok') filtered = filtered.filter(p => p.qty > p.min);
+      else if (stockFilter === 'low') filtered = filtered.filter(p => p.qty > 0 && p.qty <= p.min);
+      else if (stockFilter === 'out') filtered = filtered.filter(p => p.qty === 0);
+
+      // Sort: out → low → ok
+      filtered.sort((a, b) => {
+        const sa = a.qty === 0 ? 0 : a.qty <= a.min ? 1 : 2;
+        const sb = b.qty === 0 ? 0 : b.qty <= b.min ? 1 : 2;
+        return sa - sb;
+      });
+
+      list.innerHTML = filtered.map(p => {
+        const stockClass = p.qty === 0 ? 'out' : p.qty <= p.min ? 'low' : p.qty <= p.min * 1.5 ? 'low' : 'ok';
+        const qtyClass = p.qty === 0 ? 'out' : p.qty <= p.min ? 'critical' : p.qty <= p.min * 1.5 ? 'low' : 'ok';
+        return `
+          <div class="part-card">
+            <span class="part-icon">${p.icon}</span>
+            <div class="part-info">
+              <div class="part-name">${p.name[lang] || p.name.ja}</div>
+              <div class="part-code">${p.code}</div>
+              <div class="part-machine">🏭 ${p.machine}</div>
+            </div>
+            <div class="part-stock">
+              <div class="part-qty ${qtyClass}">${p.qty}</div>
+              <div class="part-unit">${p.unit}</div>
+              <div class="part-min">${t.min}: ${p.min}</div>
+            </div>
+            <div class="part-actions">
+              <button class="part-action-btn" onclick="showUseModal('${p.id}')">${t.use}</button>
+              <button class="part-action-btn primary" onclick="showOrderModal('${p.id}')">${t.order}</button>
+            </div>
+          </div>
+        `;
+      }).join('') || `<div style="text-align:center;padding:20px;color:var(--text-secondary);">---</div>`;
+    }
+
+    function renderOrders() {
+      const list = document.getElementById('orders-list');
+      const statusLabels = { ordered: t.ordered, shipped: t.shipped, delivered: t.delivered };
+
+      list.innerHTML = orders.map(o => `
+        <div class="order-card">
+          <div class="order-header">
+            <span class="order-id">${o.id}</span>
+            <span class="order-badge ${o.status}">${statusLabels[o.status] || o.status}</span>
+          </div>
+          <div class="order-items">${o.items.map(i => `${i.name} x${i.qty}`).join(', ')}</div>
+          <div class="order-date">📅 ${o.date} → ETA: ${o.eta} | 🏢 ${o.supplier}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderUsage() {
+      const list = document.getElementById('usage-list');
+      list.innerHTML = usageLog.map(u => `
+        <div class="usage-item">
+          <span class="usage-icon">📤</span>
+          <div class="usage-info">
+            <div class="usage-part">${u.partName}</div>
+            <div class="usage-detail">${u.user} - ${u.reason}</div>
+          </div>
+          <span class="usage-qty">-${u.qty}</span>
+          <span class="usage-date">${u.date.split(' ')[0]}</span>
+        </div>
+      `).join('');
+    }
+
+    renderAll();
+
+    // ========== Tabs ==========
+    document.querySelectorAll('.parts-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.parts-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.parts-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+      });
+    });
+
+    // ========== Search & Filter ==========
+    document.getElementById('search-parts').addEventListener('input', (e) => {
+      renderParts(e.target.value, document.getElementById('filter-stock').value);
+    });
+
+    document.getElementById('filter-stock').addEventListener('change', (e) => {
+      renderParts(document.getElementById('search-parts').value, e.target.value);
+    });
+
+    // ========== Modals ==========
+    const modal = document.getElementById('parts-modal');
+    const modalBody = document.getElementById('modal-body');
+
+    function closeModal() { modal.classList.add('hidden'); }
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+    function showUseModal(id) {
+      const p = parts.find(x => x.id === id);
+      if (!p) return;
+      modalBody.innerHTML = `
+        <h3>📤 ${t.useTitle}: ${p.name[lang] || p.name.ja}</h3>
+        <div class="fm-row"><label>${t.qty}: ${p.qty} ${p.unit}</label></div>
+        <div class="fm-row"><label>${t.useQty}</label><input type="number" id="use-qty" min="1" max="${p.qty}" value="1"></div>
+        <div class="fm-row"><label>${t.useReason}</label><input type="text" id="use-reason" placeholder="修理、交換、補充..."></div>
+        <div class="modal-btns">
+          <button class="btn-secondary" onclick="closeModal()">${t.cancel}</button>
+          <button class="btn-primary" onclick="confirmUse('${id}')">${t.confirm}</button>
+        </div>
+      `;
+      modal.classList.remove('hidden');
+    }
+
+    function confirmUse(id) {
+      const p = parts.find(x => x.id === id);
+      const qty = parseInt(document.getElementById('use-qty').value) || 0;
+      const reason = document.getElementById('use-reason').value || '-';
+      if (qty <= 0 || qty > p.qty) return;
+
+      p.qty -= qty;
+      const session = JSON.parse(localStorage.getItem('genba-session') || '{}');
+      usageLog.unshift({
+        date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        part: p.code,
+        partName: p.name[lang] || p.name.ja,
+        qty: qty,
+        user: session.name || 'Unknown',
+        reason: reason,
+      });
+
+      renderAll();
+      closeModal();
+    }
+
+    function showOrderModal(id) {
+      const p = parts.find(x => x.id === id);
+      if (!p) return;
+      const suggestQty = Math.max(p.min * 2 - p.qty, p.min);
+      modalBody.innerHTML = `
+        <h3>🚚 ${t.orderTitle}: ${p.name[lang] || p.name.ja}</h3>
+        <div class="fm-row"><label>${t.qty}: ${p.qty} ${p.unit} (${t.min}: ${p.min})</label></div>
+        <div class="fm-row"><label>${t.orderQty}</label><input type="number" id="order-qty" min="1" value="${suggestQty}"></div>
+        <div class="fm-row"><label>${t.supplier}</label><input type="text" id="order-supplier" value="${p.supplier}"></div>
+        <div class="modal-btns">
+          <button class="btn-secondary" onclick="closeModal()">${t.cancel}</button>
+          <button class="btn-primary" onclick="confirmOrder('${id}')">${t.confirm}</button>
+        </div>
+      `;
+      modal.classList.remove('hidden');
+    }
+
+    function confirmOrder(id) {
+      const p = parts.find(x => x.id === id);
+      const qty = parseInt(document.getElementById('order-qty').value) || 0;
+      const supplier = document.getElementById('order-supplier').value;
+      if (qty <= 0) return;
+
+      const today = new Date().toISOString().split('T')[0];
+      const eta = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+      const orderId = `ORD-${today.replace(/-/g, '').substring(0, 4)}-${String(orders.length + 43).padStart(3, '0')}`;
+
+      orders.unshift({
+        id: orderId,
+        date: today,
+        status: 'ordered',
+        items: [{ code: p.code, name: p.name[lang] || p.name.ja, qty: qty }],
+        supplier: supplier,
+        eta: eta,
+      });
+
+      renderAll();
+      closeModal();
+    }
+
+    // ========== Add Part ==========
+    document.getElementById('add-btn').addEventListener('click', () => {
+      modalBody.innerHTML = `
+        <h3>📦 ${t.addTitle}</h3>
+        <div class="fm-row"><label>${t.name}</label><input type="text" id="add-name"></div>
+        <div class="fm-row"><label>${t.code}</label><input type="text" id="add-code" placeholder="例: BRG-6205"></div>
+        <div class="fm-row"><label>${t.machine}</label>
+          <select id="add-machine">
+            <option value="共通">共通</option>
+            <option value="CNC旋盤 CK6140">CNC旋盤 CK6140</option>
+            <option value="プレス機 AP-100">プレス機 AP-100</option>
+            <option value="溶接ロボット RW-200">溶接ロボット RW-200</option>
+          </select>
+        </div>
+        <div class="fm-row"><label>${t.qty}</label><input type="number" id="add-qty" min="0" value="0"></div>
+        <div class="fm-row"><label>${t.minStock}</label><input type="number" id="add-min" min="0" value="2"></div>
+        <div class="fm-row"><label>${t.supplier}</label><input type="text" id="add-supplier"></div>
+        <div class="modal-btns">
+          <button class="btn-secondary" onclick="closeModal()">${t.cancel}</button>
+          <button class="btn-primary" onclick="addPart()">${t.save}</button>
+        </div>
+      `;
+      modal.classList.remove('hidden');
+    });
+
+    function addPart() {
+      const name = document.getElementById('add-name').value.trim();
+      const code = document.getElementById('add-code').value.trim();
+      if (!name || !code) return;
+
+      parts.push({
+        id: 'P-' + String(parts.length + 1).padStart(3, '0'),
+        icon: '📦',
+        name: { ja: name, en: name, th: name, vi: name },
+        code: code,
+        machine: document.getElementById('add-machine').value,
+        machineId: 'custom',
+        qty: parseInt(document.getElementById('add-qty').value) || 0,
+        min: parseInt(document.getElementById('add-min').value) || 2,
+        unit: t.pcs,
+        supplier: document.getElementById('add-supplier').value || '-',
+        price: 0,
+      });
+
+      renderAll();
+      closeModal();
+    }
+
+    // ========== Scan ==========
+    document.getElementById('scan-btn').addEventListener('click', () => {
+      modalBody.innerHTML = `
+        <h3>📷 ${t.scanTitle}</h3>
+        <div class="scan-area" onclick="document.getElementById('scan-input').focus()">
+          <div class="scan-icon">📷</div>
+          <p>${t.scan}</p>
+        </div>
+        <div class="fm-row"><label>${t.code}</label><input type="text" id="scan-input" placeholder="バーコード / QRコード"></div>
+        <div class="modal-btns">
+          <button class="btn-secondary" onclick="closeModal()">${t.cancel}</button>
+          <button class="btn-primary" onclick="scanSearch()">🔍</button>
+        </div>
+        <div id="scan-result" style="margin-top:12px;"></div>
+      `;
+      modal.classList.remove('hidden');
+      setTimeout(() => document.getElementById('scan-input').focus(), 100);
+    });
+
+    function scanSearch() {
+      const code = document.getElementById('scan-input').value.trim().toUpperCase();
+      const found = parts.find(p => p.code.toUpperCase() === code);
+      const result = document.getElementById('scan-result');
+
+      if (found) {
+        result.innerHTML = `
+          <div class="part-card" style="margin:0;">
+            <span class="part-icon">${found.icon}</span>
+            <div class="part-info">
+              <div class="part-name">${found.name[lang] || found.name.ja}</div>
+              <div class="part-code">${found.code}</div>
+            </div>
+            <div class="part-stock">
+              <div class="part-qty ${found.qty === 0 ? 'out' : found.qty <= found.min ? 'critical' : 'ok'}">${found.qty}</div>
+              <div class="part-unit">${found.unit}</div>
+            </div>
+          </div>
+        `;
+      } else {
+        result.innerHTML = `<p style="text-align:center;color:var(--text-secondary);">Not found: ${code}</p>`;
+      }
+    }
+  </script>
+</body>
+</html>

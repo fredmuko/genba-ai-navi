@@ -1,0 +1,114 @@
+{
+  "users": [
+    {
+      "id": "EMP-001",
+      "pin": "1234",
+      "name": "田中太郎",
+      "name_en": "Tanaka Taro",
+      "role": "operator",
+      "lang": "ja",
+      "department": "製造1課",
+      "shift": "A",
+      "certified_machines": ["cnc-001", "press-001"],
+      "joined": "2018-04-01",
+      "active": true
+    },
+    {
+      "id": "EMP-002",
+      "pin": "5678",
+      "name": "Somchai Prasert",
+      "name_en": "Somchai Prasert",
+      "role": "operator",
+      "lang": "th",
+      "department": "製造1課",
+      "shift": "A",
+      "certified_machines": ["cnc-001"],
+      "joined": "2022-10-01",
+      "active": true
+    },
+    {
+      "id": "EMP-003",
+      "pin": "9012",
+      "name": "Nguyen Van An",
+      "name_en": "Nguyen Van An",
+      "role": "operator",
+      "lang": "vi",
+      "department": "製造2課",
+      "shift": "B",
+      "certified_machines": ["press-001", "welder-001"],
+      "joined": "2023-04-01",
+      "active": true
+    },
+    {
+      "id": "EMP-010",
+      "pin": "1111",
+      "name": "佐藤健一",
+      "name_en": "Sato Kenichi",
+      "role": "leader",
+      "lang": "ja",
+      "department": "製造1課",
+      "shift": "A",
+      "certified_machines": ["cnc-001", "press-001", "welder-001"],
+      "joined": "2015-04-01",
+      "active": true
+    },
+    {
+      "id": "EMP-020",
+      "pin": "2222",
+      "name": "山本修",
+      "name_en": "Yamamoto Osamu",
+      "role": "maintenance",
+      "lang": "ja",
+      "department": "保全課",
+      "shift": "A",
+      "certified_machines": ["cnc-001", "press-001", "welder-001"],
+      "joined": "2012-04-01",
+      "active": true
+    },
+    {
+      "id": "EMP-100",
+      "pin": "0000",
+      "name": "管理者",
+      "name_en": "Administrator",
+      "role": "manager",
+      "lang": "ja",
+      "department": "製造部",
+      "shift": "all",
+      "certified_machines": ["cnc-001", "press-001", "welder-001"],
+      "joined": "2010-04-01",
+      "active": true
+    }
+  ],
+  "roles": {
+    "operator": {
+      "ja": "オペレーター",
+      "en": "Operator",
+      "th": "ผู้ปฏิบัติงาน",
+      "vi": "Vận hành"
+    },
+    "leader": {
+      "ja": "ラインリーダー",
+      "en": "Line Leader",
+      "th": "หัวหน้าไลน์",
+      "vi": "Trưởng dây chuyền"
+    },
+    "maintenance": {
+      "ja": "保全担当",
+      "en": "Maintenance",
+      "th": "ช่างซ่อมบำรุง",
+      "vi": "Bảo trì"
+    },
+    "manager": {
+      "ja": "管理者",
+      "en": "Manager",
+      "th": "ผู้จัดการ",
+      "vi": "Quản lý"
+    }
+  },
+  "permissions": {
+    "operator": ["view_guide", "use_chat", "view_safety", "checklist"],
+    "leader": ["view_guide", "use_chat", "view_safety", "checklist", "view_reports"],
+    "maintenance": ["view_guide", "use_chat", "view_safety", "checklist", "edit_machines", "view_history"],
+    "manager": ["view_guide", "use_chat", "view_safety", "checklist", "edit_machines", "view_history", "manage_users", "view_reports", "edit_data"]
+  }
+}

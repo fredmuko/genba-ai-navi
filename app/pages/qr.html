@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>QRコード - 現場AIナビ</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <style>
+    .qr-page { padding: 16px; }
+
+    /* Tabs */
+    .qr-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+
+    .qr-tab {
+      flex: 1;
+      padding: 12px 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85em;
+      text-align: center;
+      color: var(--text);
+    }
+
+    .qr-tab.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .qr-content { display: none; }
+    .qr-content.active { display: block; }
+
+    /* Scanner */
+    .scanner-area {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto 16px;
+      aspect-ratio: 1;
+      background: #000;
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .scanner-area video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .scanner-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .scanner-frame {
+      width: 65%;
+      height: 65%;
+      border: 3px solid rgba(255,255,255,0.8);
+      border-radius: 16px;
+      position: relative;
+    }
+
+    .scanner-frame::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 5%;
+      right: 5%;
+      height: 2px;
+      background: var(--primary);
+      animation: scanLine 2s ease-in-out infinite;
+    }
+
+    @keyframes scanLine {
+      0%, 100% { top: 15%; }
+      50% { top: 85%; }
+    }
+
+    .scanner-corner {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-color: var(--primary);
+      border-style: solid;
+    }
+
+    .scanner-corner.tl { top: -2px; left: -2px; border-width: 4px 0 0 4px; border-radius: 8px 0 0 0; }
+    .scanner-corner.tr { top: -2px; right: -2px; border-width: 4px 4px 0 0; border-radius: 0 8px 0 0; }
+    .scanner-corner.bl { bottom: -2px; left: -2px; border-width: 0 0 4px 4px; border-radius: 0 0 0 8px; }
+    .scanner-corner.br { bottom: -2px; right: -2px; border-width: 0 4px 4px 0; border-radius: 0 0 8px 0; }
+
+    .scanner-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      gap: 12px;
+    }
+
+    .scanner-placeholder .sp-icon { font-size: 3em; }
+    .scanner-placeholder p { font-size: 0.9em; opacity: 0.8; }
+
+    .scanner-controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .scanner-btn {
+      padding: 10px 20px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-card);
+      cursor: pointer;
+      font-size: 0.9em;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .scanner-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .scanner-btn.stop {
+      background: var(--danger);
+      color: #fff;
+      border-color: var(--danger);
+    }
+
+    /* Manual input */
+    .manual-input {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .manual-input input {
+      flex: 1;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.95em;
+      background: var(--bg-card);
+      color: var(--text);
+    }
+
+    .manual-input button {
+      padding: 12px 16px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.9em;
+    }
+
+    /* Scan Result */
+    .scan-result {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+
+    .scan-result.hidden { display: none; }
+
+    .scan-result-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .scan-result-icon { font-size: 2em; }
+
+    .scan-result-title { font-weight: 600; font-size: 1.05em; }
+    .scan-result-type { font-size: 0.8em; color: var(--text-secondary); }
+
+    .scan-result-body {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .sr-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.88em;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sr-row:last-child { border-bottom: none; }
+
+    .sr-label { color: var(--text-secondary); }
+    .sr-value { font-weight: 500; text-align: right; }
+
+    .scan-result-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .sr-action {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      cursor: pointer;
+      font-size: 0.82em;
+      text-align: center;
+      color: var(--text);
+    }
+
+    .sr-action.primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    /* Scan History */
+    .scan-history {
+      margin-top: 16px;
+    }
+
+    .scan-history h3 {
+      font-size: 0.9em;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .scan-entry {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      font-size: 0.85em;
+    }
+
+    .scan-entry:active { background: var(--bg); }
+
+    .se-icon { font-size: 1.1em; }
+    .se-info { flex: 1; }
+    .se-name { font-weight: 500; }
+    .se-code { font-size: 0.75em; color: var(--text-secondary); }
+    .se-time { font-size: 0.7em; color: var(--text-secondary); white-space: nowrap; }
+
+    /* QR Generator */
+    .gen-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .gen-form .form-group label {
+      display: block;
+      font-size: 0.85em;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .gen-form .form-group input,
+    .gen-form .form-group select,
+    .gen-form .form-group textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.95em;
+      background: var(--bg-card);
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    .qr-preview {
+      text-align: center;
+      padding: 20px;
+      background: #fff;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      margin-top: 12px;
+    }
+
+    .qr-preview.hidden { display: none; }
+
+    .qr-canvas {
+      display: inline-block;
+      padding: 16px;
+      background: #fff;
+    }
+
+    /* SVG QR placeholder */
+    .qr-display {
+      width: 200px;
+      height: 200px;
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85em;
+      color: #666;
+      border-radius: 8px;
+    }
+
+    .qr-data-text {
+      margin-top: 12px;
+      font-size: 0.8em;
+      color: var(--text-secondary);
+      word-break: break-all;
+    }
+
+    .gen-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .gen-actions button {
+      flex: 1;
+      padding: 12px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.9em;
+    }
+
+    /* Registered QR list */
+    .qr-list-section { margin-top: 20px; }
+    .qr-list-section h3 { font-size: 0.9em; color: var(--text-secondary); margin-bottom: 10px; }
+
+    .qr-registered {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .qr-reg-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .qr-reg-card:active { background: var(--bg); }
+
+    .qr-reg-icon { font-size: 1.5em; margin-bottom: 4px; }
+    .qr-reg-name { font-size: 0.8em; font-weight: 600; }
+    .qr-reg-type { font-size: 0.65em; color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="l-header">
+    <div class="l-header__left">
+      <button class="l-header__back" onclick="window.location.href='../index.html'">←</button>
+      <span class="l-header__title" id="page-title">QRコード</span>
+    </div>
+    <div class="l-header__actions">
+      <span style="font-size:0.75em;color:rgba(255,255,255,0.7);" id="scan-count">0 件スキャン済み</span>
+    </div>
+  </header>
+
+  <div class="qr-page l-page">
+    <!-- Tabs -->
+    <div class="qr-tabs">
+      <button class="qr-tab active" data-tab="scan">📷 スキャン</button>
+      <button class="qr-tab" data-tab="generate">🏷 生成</button>
+      <button class="qr-tab" data-tab="list">📋 一覧</button>
+    </div>
+
+    <!-- Tab: Scan -->
+    <div class="qr-content active" id="tab-scan">
+      <!-- Camera Scanner -->
+      <div class="scanner-area" id="scanner-area">
+        <div class="scanner-placeholder" id="scanner-placeholder">
+          <span class="sp-icon">📷</span>
+          <p id="scanner-msg">タップしてカメラを起動</p>
+        </div>
+        <video id="scanner-video" autoplay playsinline style="display:none;"></video>
+        <div class="scanner-overlay" id="scanner-overlay" style="display:none;">
+          <div class="scanner-frame">
+            <div class="scanner-corner tl"></div>
+            <div class="scanner-corner tr"></div>
+            <div class="scanner-corner bl"></div>
+            <div class="scanner-corner br"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="scanner-controls">
+        <button class="scanner-btn" id="start-scan-btn">📷 <span id="btn-start-text">スキャン開始</span></button>
+        <button class="scanner-btn" id="flash-btn" style="display:none;">💡 ライト</button>
+      </div>
+
+      <!-- Manual Input -->
+      <div class="manual-input">
+        <input type="text" id="manual-code" placeholder="コードを手入力...">
+        <button id="manual-search-btn">🔍</button>
+      </div>
+
+      <!-- Scan Result -->
+      <div class="scan-result hidden" id="scan-result">
+        <div class="scan-result-header">
+          <span class="scan-result-icon" id="result-icon">🏭</span>
+          <div>
+            <div class="scan-result-title" id="result-title">--</div>
+            <div class="scan-result-type" id="result-type">--</div>
+          </div>
+        </div>
+        <div class="scan-result-body" id="result-body"></div>
+        <div class="scan-result-actions" id="result-actions"></div>
+      </div>
+
+      <!-- Scan History -->
+      <div class="scan-history">
+        <h3 id="history-title">スキャン履歴</h3>
+        <div id="scan-history-list"></div>
+      </div>
+    </div>
+
+    <!-- Tab: Generate -->
+    <div class="qr-content" id="tab-generate">
+      <div class="gen-form">
+        <div class="form-group">
+          <label id="gen-type-label">QRコードの種類</label>
+          <select id="gen-type">
+            <option value="machine">🏭 機械</option>
+            <option value="part">🔧 部品</option>
+            <option value="manual">📄 マニュアル</option>
+            <option value="checklist">✅ 点検チェックリスト</option>
+            <option value="user">👤 ユーザー</option>
+            <option value="custom">📝 カスタム</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="gen-target-group">
+          <label id="gen-target-label">対象を選択</label>
+          <select id="gen-target">
+            <option value="">-- 選択 --</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="gen-custom-group" style="display:none;">
+          <label>カスタムデータ</label>
+          <textarea id="gen-custom-data" rows="3" placeholder="テキストまたはURL..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label id="gen-label-label">ラベル（印刷用）</label>
+          <input type="text" id="gen-label" placeholder="例: CNC旋盤 CK6140 - 1F製造エリア">
+        </div>
+
+        <button class="btn-primary" style="width:100%;" onclick="generateQR()" id="gen-btn">🏷 QRコードを生成</button>
+      </div>
+
+      <!-- QR Preview -->
+      <div class="qr-preview hidden" id="qr-preview">
+        <div class="qr-display" id="qr-display"></div>
+        <div class="qr-data-text" id="qr-data-text"></div>
+        <div class="gen-actions">
+          <button class="btn-secondary" onclick="printQR()">🖨 印刷</button>
+          <button class="btn-primary" onclick="saveQR()">💾 保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: List -->
+    <div class="qr-content" id="tab-list">
+      <div class="qr-list-section">
+        <h3 id="list-machines-title">🏭 機械QR</h3>
+        <div class="qr-registered" id="list-machines"></div>
+      </div>
+      <div class="qr-list-section">
+        <h3 id="list-parts-title">🔧 部品QR</h3>
+        <div class="qr-registered" id="list-parts"></div>
+      </div>
+      <div class="qr-list-section">
+        <h3 id="list-custom-title">📝 カスタムQR</h3>
+        <div class="qr-registered" id="list-custom"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========== Init ==========
+    const lang = localStorage.getItem('genba-lang') || 'ja';
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('genba-theme') || 'light');
+    document.documentElement.setAttribute('data-fontsize', localStorage.getItem('genba-fontsize') || 'medium');
+
+    let scanHistory = JSON.parse(localStorage.getItem('genba-scan-history') || '[]');
+    let savedQRs = JSON.parse(localStorage.getItem('genba-saved-qrs') || '[]');
+    let cameraStream = null;
+    let scanning = false;
+
+    // ========== i18n ==========
+    const texts = {
+      ja: {
+        title: 'QRコード', scanTab: '📷 スキャン', genTab: '🏷 生成', listTab: '📋 一覧',
+        startScan: 'スキャン開始', stopScan: 'スキャン停止', tapCamera: 'タップしてカメラを起動',
+        manual: 'コードを手入力...', historyTitle: 'スキャン履歴',
+        genType: 'QRコードの種類', target: '対象を選択', label: 'ラベル（印刷用）',
+        generate: '🏷 QRコードを生成', print: '🖨 印刷', save: '💾 保存',
+        machine: '🏭 機械', part: '🔧 部品', manualDoc: '📄 マニュアル',
+        checklist: '✅ 点検チェックリスト', user: '👤 ユーザー', custom: '📝 カスタム',
+        machineQR: '🏭 機械QR', partQR: '🔧 部品QR', customQR: '📝 カスタムQR',
+        viewGuide: '📖 操作ガイド', viewDetail: '🔍 詳細', reportTrouble: '🔧 トラブル報告',
+        viewStock: '📦 在庫確認', usepart: '📤 使用登録',
+        scanned: '件スキャン済み', noResult: '該当するデータが見つかりません',
+        typeMachine: '機械', typePart: '部品', typeManual: 'マニュアル', typeUser: 'ユーザー',
+      },
+      en: {
+        title: 'QR Code', scanTab: '📷 Scan', genTab: '🏷 Generate', listTab: '📋 List',
+        startScan: 'Start Scan', stopScan: 'Stop Scan', tapCamera: 'Tap to start camera',
+        manual: 'Enter code manually...', historyTitle: 'Scan History',
+        genType: 'QR Code Type', target: 'Select Target', label: 'Label (for printing)',
+        generate: '🏷 Generate QR', print: '🖨 Print', save: '💾 Save',
+        machine: '🏭 Machine', part: '🔧 Part', manualDoc: '📄 Manual',
+        checklist: '✅ Checklist', user: '👤 User', custom: '📝 Custom',
+        machineQR: '🏭 Machine QR', partQR: '🔧 Part QR', customQR: '📝 Custom QR',
+        viewGuide: '📖 Guide', viewDetail: '🔍 Detail', reportTrouble: '🔧 Report',
+        viewStock: '📦 Stock', usepart: '📤 Use',
+        scanned: ' scanned', noResult: 'No matching data found',
+        typeMachine: 'Machine', typePart: 'Part', typeManual: 'Manual', typeUser: 'User',
+      },
+      th: {
+        title: 'QR Code', scanTab: '📷 สแกน', genTab: '🏷 สร้าง', listTab: '📋 รายการ',
+        startScan: 'เริ่มสแกน', stopScan: 'หยุดสแกน', tapCamera: 'แตะเพื่อเปิดกล้อง',
+        manual: 'พิมพ์รหัส...', historyTitle: 'ประวัติสแกน',
+        genType: 'ประเภท QR', target: 'เลือกเป้าหมาย', label: 'ป้าย (สำหรับพิมพ์)',
+        generate: '🏷 สร้าง QR', print: '🖨 พิมพ์', save: '💾 บันทึก',
+        machine: '🏭 เครื่อง', part: '🔧 อะไหล่', manualDoc: '📄 คู่มือ',
+        checklist: '✅ เช็คลิสต์', user: '👤 ผู้ใช้', custom: '📝 กำหนดเอง',
+        machineQR: '🏭 QR เครื่อง', partQR: '🔧 QR อะไหล่', customQR: '📝 QR กำหนดเอง',
+        viewGuide: '📖 คู่มือ', viewDetail: '🔍 รายละเอียด', reportTrouble: '🔧 แจ้งปัญหา',
+        viewStock: '📦 สต็อก', usepart: '📤 ใช้',
+        scanned: ' สแกนแล้ว', noResult: 'ไม่พบข้อมูล',
+        typeMachine: 'เครื่อง', typePart: 'อะไหล่', typeManual: 'คู่มือ', typeUser: 'ผู้ใช้',
+      },
+      vi: {
+        title: 'Mã QR', scanTab: '📷 Quét', genTab: '🏷 Tạo', listTab: '📋 Danh sách',
+        startScan: 'Bắt đầu quét', stopScan: 'Dừng quét', tapCamera: 'Nhấn để mở camera',
+        manual: 'Nhập mã...', historyTitle: 'Lịch sử quét',
+        genType: 'Loại mã QR', target: 'Chọn đối tượng', label: 'Nhãn (để in)',
+        generate: '🏷 Tạo mã QR', print: '🖨 In', save: '💾 Lưu',
+        machine: '🏭 Máy', part: '🔧 Phụ tùng', manualDoc: '📄 Tài liệu',
+        checklist: '✅ Checklist', user: '👤 Người dùng', custom: '📝 Tùy chỉnh',
+        machineQR: '🏭 QR máy', partQR: '🔧 QR phụ tùng', customQR: '📝 QR tùy chỉnh',
+        viewGuide: '📖 Hướng dẫn', viewDetail: '🔍 Chi tiết', reportTrouble: '🔧 Báo sự cố',
+        viewStock: '📦 Tồn kho', usepart: '📤 Sử dụng',
+        scanned: ' đã quét', noResult: 'Không tìm thấy dữ liệu',
+        typeMachine: 'Máy', typePart: 'Phụ tùng', typeManual: 'Tài liệu', typeUser: 'Người dùng',
+      },
+    };
+
+    const t = texts[lang] || texts.ja;
+    document.getElementById('page-title').textContent = t.title;
+    document.getElementById('scanner-msg').textContent = t.tapCamera;
+    document.getElementById('btn-start-text').textContent = t.startScan;
+    document.getElementById('manual-code').placeholder = t.manual;
+    document.getElementById('history-title').textContent = t.historyTitle;
+    document.getElementById('gen-type-label').textContent = t.genType;
+    document.getElementById('gen-target-label').textContent = t.target;
+    document.getElementById('gen-label-label').textContent = t.label;
+    document.getElementById('gen-btn').textContent = t.generate;
+    document.getElementById('list-machines-title').textContent = t.machineQR;
+    document.getElementById('list-parts-title').textContent = t.partQR;
+    document.getElementById('list-custom-title').textContent = t.customQR;
+    document.getElementById('scan-count').textContent = `${scanHistory.length}${t.scanned}`;
+
+    // ========== Known QR Data ==========
+    const qrDatabase = {
+      'MCH-CNC-001': { type: 'machine', icon: '🏭', name: 'CNC旋盤 CK6140', id: 'cnc-001', model: 'CK6140', location: '1F 製造エリアA', link: 'detail.html?machine=cnc-001' },
+      'MCH-PRS-001': { type: 'machine', icon: '🔨', name: 'プレス機 AP-100', id: 'press-001', model: 'AP-100', location: '1F 製造エリアB', link: 'detail.html?machine=press-001' },
+      'MCH-WLD-001': { type: 'machine', icon: '⚡', name: '溶接ロボット RW-200', id: 'welder-001', model: 'RW-200', location: '1F 溶接エリア', link: 'detail.html?machine=welder-001' },
+      'PRT-BRG-6205': { type: 'part', icon: '⚙️', name: 'ベアリング 6205', code: 'BRG-6205-2RS', stock: 8, min: 4, link: 'parts.html' },
+      'PRT-OR-30': { type: 'part', icon: '🔩', name: 'Oリング φ30', code: 'OR-30-NBR', stock: 15, min: 10, link: 'parts.html' },
+      'PRT-TIP-12': { type: 'part', icon: '🔧', name: '溶接トーチチップ 1.2mm', code: 'TIP-12-CU', stock: 3, min: 5, link: 'parts.html' },
+      'PRT-WIRE-12': { type: 'part', icon: '🔌', name: '溶接ワイヤー 1.2mm', code: 'WIRE-12-15', stock: 4, min: 3, link: 'parts.html' },
+      'USR-EMP-001': { type: 'user', icon: '👤', name: '田中太郎', id: 'EMP-001', role: 'operator', dept: '製造1課' },
+      'USR-EMP-020': { type: 'user', icon: '🔧', name: '山本修', id: 'EMP-020', role: 'maintenance', dept: '保全課' },
+    };
+
+    // ========== Tabs ==========
+    document.querySelectorAll('.qr-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.qr-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.qr-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+        if (tab.dataset.tab !== 'scan' && cameraStream) stopCamera();
+      });
+    });
+
+    // ========== Camera Scanner ==========
+    document.getElementById('scanner-area').addEventListener('click', toggleCamera);
+    document.getElementById('start-scan-btn').addEventListener('click', toggleCamera);
+
+    async function toggleCamera() {
+      if (scanning) {
+        stopCamera();
+      } else {
+        await startCamera();
+      }
+    }
+
+    async function startCamera() {
+      try {
+        const video = document.getElementById('scanner-video');
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' },
+        });
+        video.srcObject = cameraStream;
+        video.style.display = 'block';
+        document.getElementById('scanner-placeholder').style.display = 'none';
+        document.getElementById('scanner-overlay').style.display = 'flex';
+        document.getElementById('start-scan-btn').classList.add('stop');
+        document.getElementById('btn-start-text').textContent = t.stopScan;
+        scanning = true;
+
+        // Simulate scan after 3 seconds (real app would use a QR decoder library)
+        setTimeout(() => {
+          if (scanning) {
+            const codes = Object.keys(qrDatabase);
+            const randomCode = codes[Math.floor(Math.random() * codes.length)];
+            handleScanResult(randomCode);
+            stopCamera();
+          }
+        }, 3000);
+      } catch (e) {
+        document.getElementById('scanner-msg').textContent = 'Camera access denied';
+      }
+    }
+
+    function stopCamera() {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+      }
+      const video = document.getElementById('scanner-video');
+      video.style.display = 'none';
+      document.getElementById('scanner-placeholder').style.display = 'flex';
+      document.getElementById('scanner-overlay').style.display = 'none';
+      document.getElementById('start-scan-btn').classList.remove('stop');
+      document.getElementById('btn-start-text').textContent = t.startScan;
+      scanning = false;
+    }
+
+    // ========== Manual Input ==========
+    document.getElementById('manual-search-btn').addEventListener('click', () => {
+      const code = document.getElementById('manual-code').value.trim().toUpperCase();
+      if (code) handleScanResult(code);
+    });
+
+    document.getElementById('manual-code').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const code = e.target.value.trim().toUpperCase();
+        if (code) handleScanResult(code);
+      }
+    });
+
+    // ========== Handle Result ==========
+    function handleScanResult(code) {
+      const data = qrDatabase[code];
+      const resultDiv = document.getElementById('scan-result');
+      const resultBody = document.getElementById('result-body');
+      const resultActions = document.getElementById('result-actions');
+
+      if (!data) {
+        document.getElementById('result-icon').textContent = '❓';
+        document.getElementById('result-title').textContent = code;
+        document.getElementById('result-type').textContent = t.noResult;
+        resultBody.innerHTML = `<div class="sr-row"><span class="sr-label">Code</span><span class="sr-value">${code}</span></div>`;
+        resultActions.innerHTML = `<button class="sr-action" onclick="window.location.href='chat.html'">${t.reportTrouble}</button>`;
+        resultDiv.classList.remove('hidden');
+        addScanHistory(code, '❓', 'Unknown', 'unknown');
+        return;
+      }
+
+      document.getElementById('result-icon').textContent = data.icon;
+      document.getElementById('result-title').textContent = data.name;
+
+      if (data.type === 'machine') {
+        document.getElementById('result-type').textContent = `${t.typeMachine} / ${data.model}`;
+        resultBody.innerHTML = `
+          <div class="sr-row"><span class="sr-label">ID</span><span class="sr-value">${code}</span></div>
+          <div class="sr-row"><span class="sr-label">Model</span><span class="sr-value">${data.model}</span></div>
+          <div class="sr-row"><span class="sr-label">Location</span><span class="sr-value">${data.location}</span></div>
+        `;
+        resultActions.innerHTML = `
+          <button class="sr-action primary" onclick="window.location.href='${data.link}'">${t.viewDetail}</button>
+          <button class="sr-action" onclick="window.location.href='${data.link}'">${t.viewGuide}</button>
+          <button class="sr-action" onclick="window.location.href='maintenance-contact.html'">${t.reportTrouble}</button>
+        `;
+      } else if (data.type === 'part') {
+        document.getElementById('result-type').textContent = `${t.typePart} / ${data.code}`;
+        const stockClass = data.stock === 0 ? 'color:var(--danger)' : data.stock <= data.min ? 'color:#e37400' : 'color:var(--success)';
+        resultBody.innerHTML = `
+          <div class="sr-row"><span class="sr-label">Code</span><span class="sr-value">${data.code}</span></div>
+          <div class="sr-row"><span class="sr-label">Stock</span><span class="sr-value" style="${stockClass};font-weight:700;">${data.stock} (min: ${data.min})</span></div>
+        `;
+        resultActions.innerHTML = `
+          <button class="sr-action primary" onclick="window.location.href='${data.link}'">${t.viewStock}</button>
+          <button class="sr-action" onclick="window.location.href='${data.link}'">${t.usepart}</button>
+        `;
+      } else if (data.type === 'user') {
+        document.getElementById('result-type').textContent = `${t.typeUser} / ${data.id}`;
+        resultBody.innerHTML = `
+          <div class="sr-row"><span class="sr-label">ID</span><span class="sr-value">${data.id}</span></div>
+          <div class="sr-row"><span class="sr-label">Role</span><span class="sr-value">${data.role}</span></div>
+          <div class="sr-row"><span class="sr-label">Dept</span><span class="sr-value">${data.dept}</span></div>
+        `;
+        resultActions.innerHTML = '';
+      }
+
+      resultDiv.classList.remove('hidden');
+      addScanHistory(code, data.icon, data.name, data.type);
+    }
+
+    function addScanHistory(code, icon, name, type) {
+      scanHistory.unshift({
+        code, icon, name, type,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        date: new Date().toLocaleDateString(),
+      });
+      if (scanHistory.length > 30) scanHistory = scanHistory.slice(0, 30);
+      localStorage.setItem('genba-scan-history', JSON.stringify(scanHistory));
+      document.getElementById('scan-count').textContent = `${scanHistory.length}${t.scanned}`;
+      renderScanHistory();
+    }
+
+    function renderScanHistory() {
+      const list = document.getElementById('scan-history-list');
+      list.innerHTML = scanHistory.slice(0, 10).map(h => `
+        <div class="scan-entry" onclick="handleScanResult('${h.code}')">
+          <span class="se-icon">${h.icon}</span>
+          <div class="se-info">
+            <div class="se-name">${h.name}</div>
+            <div class="se-code">${h.code}</div>
+          </div>
+          <span class="se-time">${h.time}</span>
+        </div>
+      `).join('') || '<div style="text-align:center;padding:16px;color:var(--text-secondary);font-size:0.85em;">---</div>';
+    }
+
+    renderScanHistory();
+
+    // ========== QR Generator ==========
+    const genType = document.getElementById('gen-type');
+    const genTarget = document.getElementById('gen-target');
+
+    genType.addEventListener('change', () => {
+      const type = genType.value;
+      const targetGroup = document.getElementById('gen-target-group');
+      const customGroup = document.getElementById('gen-custom-group');
+
+      if (type === 'custom') {
+        targetGroup.style.display = 'none';
+        customGroup.style.display = 'block';
+      } else {
+        targetGroup.style.display = 'block';
+        customGroup.style.display = 'none';
+        populateTargets(type);
+      }
+    });
+
+    function populateTargets(type) {
+      genTarget.innerHTML = '<option value="">-- 選択 --</option>';
+      const items = Object.entries(qrDatabase).filter(([k, v]) => v.type === type);
+      items.forEach(([code, data]) => {
+        const opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = `${data.icon} ${data.name}`;
+        genTarget.appendChild(opt);
+      });
+    }
+
+    populateTargets('machine');
+
+    function generateQR() {
+      const type = genType.value;
+      const preview = document.getElementById('qr-preview');
+      const display = document.getElementById('qr-display');
+      const dataText = document.getElementById('qr-data-text');
+      let qrData = '';
+
+      if (type === 'custom') {
+        qrData = document.getElementById('gen-custom-data').value.trim();
+      } else {
+        qrData = genTarget.value;
+      }
+
+      if (!qrData) return;
+
+      const label = document.getElementById('gen-label').value || qrData;
+
+      // Generate simple QR visualization (in real app, use a QR library)
+      display.innerHTML = generateQRSVG(qrData);
+      dataText.textContent = `Data: ${qrData} | Label: ${label}`;
+
+      preview.classList.remove('hidden');
+
+      // Save to list
+      const existing = savedQRs.find(q => q.data === qrData);
+      if (!existing) {
+        const dbEntry = qrDatabase[qrData];
+        savedQRs.push({
+          data: qrData,
+          label: label,
+          type: type,
+          icon: dbEntry ? dbEntry.icon : '📝',
+          name: dbEntry ? dbEntry.name : label,
+          created: new Date().toISOString(),
+        });
+        localStorage.setItem('genba-saved-qrs', JSON.stringify(savedQRs));
+        renderQRList();
+      }
+    }
+
+    function generateQRSVG(data) {
+      // Simple deterministic pattern based on data hash
+      let hash = 0;
+      for (let i = 0; i < data.length; i++) {
+        hash = ((hash << 5) - hash) + data.charCodeAt(i);
+        hash |= 0;
+      }
+
+      const size = 21;
+      const cellSize = 8;
+      const svgSize = size * cellSize;
+      let svg = `<svg width="${svgSize}" height="${svgSize}" xmlns="http://www.w3.org/2000/svg">`;
+      svg += `<rect width="${svgSize}" height="${svgSize}" fill="white"/>`;
+
+      // Finder patterns (top-left, top-right, bottom-left)
+      const drawFinder = (x, y) => {
+        for (let r = 0; r < 7; r++) {
+          for (let c = 0; c < 7; c++) {
+            const isBorder = r === 0 || r === 6 || c === 0 || c === 6;
+            const isInner = r >= 2 && r <= 4 && c >= 2 && c <= 4;
+            if (isBorder || isInner) {
+              svg += `<rect x="${(x+c)*cellSize}" y="${(y+r)*cellSize}" width="${cellSize}" height="${cellSize}" fill="black"/>`;
+            }
+          }
+        }
+      };
+
+      drawFinder(0, 0);
+      drawFinder(size - 7, 0);
+      drawFinder(0, size - 7);
+
+      // Data pattern
+      let seed = Math.abs(hash);
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          if ((r < 8 && c < 8) || (r < 8 && c >= size-8) || (r >= size-8 && c < 8)) continue;
+          seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+          if (seed % 3 === 0) {
+            svg += `<rect x="${c*cellSize}" y="${r*cellSize}" width="${cellSize}" height="${cellSize}" fill="black"/>`;
+          }
+        }
+      }
+
+      svg += '</svg>';
+      return svg;
+    }
+
+    function printQR() {
+      const content = document.getElementById('qr-display').innerHTML;
+      const label = document.getElementById('gen-label').value || '';
+      const w = window.open('', '_blank');
+      w.document.write(`<html><head><title>QR Print</title><style>body{text-align:center;padding:40px;font-family:sans-serif;}h2{margin-bottom:20px;}.label{margin-top:16px;font-size:14px;color:#333;}</style></head><body><h2>現場AIナビ QR</h2>${content}<div class="label">${label}</div></body></html>`);
+      w.document.close();
+      w.print();
+    }
+
+    function saveQR() {
+      const svg = document.getElementById('qr-display').innerHTML;
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `qr-${Date.now()}.svg`;
+      a.click();
+    }
+
+    // ========== QR List ==========
+    function renderQRList() {
+      const machines = savedQRs.filter(q => q.type === 'machine');
+      const partsList = savedQRs.filter(q => q.type === 'part');
+      const customs = savedQRs.filter(q => !['machine', 'part'].includes(q.type));
+
+      // Also add from database
+      Object.entries(qrDatabase).forEach(([code, data]) => {
+        if (data.type === 'machine' && !machines.find(m => m.data === code)) {
+          machines.push({ data: code, icon: data.icon, name: data.name, type: 'machine' });
+        }
+        if (data.type === 'part' && !partsList.find(p => p.data === code)) {
+          partsList.push({ data: code, icon: data.icon, name: data.name, type: 'part' });
+        }
+      });
+
+      const renderCards = (items) => items.map(q => `
+        <div class="qr-reg-card" onclick="handleScanResult('${q.data}')">
+          <div class="qr-reg-icon">${q.icon}</div>
+          <div class="qr-reg-name">${q.name}</div>
+          <div class="qr-reg-type">${q.data}</div>
+        </div>
+      `).join('') || '<div style="text-align:center;padding:12px;color:var(--text-secondary);font-size:0.8em;grid-column:1/-1;">---</div>';
+
+      document.getElementById('list-machines').innerHTML = renderCards(machines);
+      document.getElementById('list-parts').innerHTML = renderCards(partsList);
+      document.getElementById('list-custom').innerHTML = renderCards(customs);
+    }
+
+    renderQRList();
+  </script>
+</body>
+</html>

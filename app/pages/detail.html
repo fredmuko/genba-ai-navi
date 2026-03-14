@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>機械詳細 - 現場AIナビ</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <style>
+    .detail-hero {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .detail-hero .machine-icon { font-size: 3em; }
+    .detail-hero h2 { margin: 8px 0 4px; font-size: 1.2em; }
+    .detail-hero .machine-model { color: var(--text-secondary); font-size: 0.85em; }
+
+    .detail-hero .status-badge {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8em;
+      font-weight: 600;
+    }
+    .status-badge.running { background: #e6f4ea; color: var(--success); }
+    .status-badge.stopped { background: #fce8e6; color: var(--danger); }
+    .status-badge.maintenance { background: #fef7e0; color: #e37400; }
+
+    .detail-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+      overflow-x: auto;
+    }
+
+    .detail-tab {
+      flex: 1;
+      padding: 10px 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.8em;
+      text-align: center;
+      white-space: nowrap;
+      color: var(--text);
+    }
+
+    .detail-tab.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .spec-table th,
+    .spec-table td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9em;
+    }
+
+    .spec-table th {
+      background: var(--bg);
+      font-weight: 600;
+      width: 35%;
+      color: var(--text-secondary);
+    }
+
+    .media-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .media-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .media-card .media-thumb {
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5em;
+    }
+
+    .media-card .media-label {
+      padding: 8px;
+      font-size: 0.8em;
+      text-align: center;
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 6px;
+    }
+
+    .checklist-item input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      accent-color: var(--primary);
+    }
+
+    .checklist-item.checked { opacity: 0.6; text-decoration: line-through; }
+
+    .ai-ask-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-top: 16px;
+    }
+
+    .ai-ask-section h4 { margin-bottom: 8px; font-size: 0.95em; }
+
+    .ai-quick-questions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .ai-quick-btn {
+      padding: 8px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.8em;
+      color: var(--text);
+    }
+
+    .ai-quick-btn:active { background: rgba(26, 115, 232, 0.1); }
+
+    .history-item {
+      padding: 12px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 6px;
+    }
+
+    .history-item .history-date {
+      font-size: 0.75em;
+      color: var(--text-secondary);
+    }
+
+    .history-item .history-text {
+      font-size: 0.9em;
+      margin-top: 4px;
+    }
+
+    .detail-page { padding: 16px; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="l-header">
+    <div class="l-header__left">
+      <button class="l-header__back" onclick="history.back()">← 戻る</button>
+      <span class="l-header__title" id="header-title">機械詳細</span>
+    </div>
+    <div class="l-header__actions">
+      <button id="lang-btn" class="icon-btn" aria-label="言語切替">
+        <span class="lang-icon">🌐</span>
+        <span id="current-lang">JA</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="l-page detail-page">
+    <!-- Machine Hero -->
+    <div class="detail-hero">
+      <div class="machine-icon" id="machine-icon">🏭</div>
+      <h2 id="machine-name">CNC旋盤 CK6140</h2>
+      <div class="machine-model" id="machine-model">型番: CK6140 / 設置: 2020年</div>
+      <span class="status-badge running" id="machine-status">稼働中</span>
+    </div>
+
+    <!-- Tabs -->
+    <div class="detail-tabs">
+      <button class="detail-tab active" data-tab="steps">操作手順</button>
+      <button class="detail-tab" data-tab="specs">仕様</button>
+      <button class="detail-tab" data-tab="media">写真/動画</button>
+      <button class="detail-tab" data-tab="checklist">点検</button>
+      <button class="detail-tab" data-tab="history">履歴</button>
+    </div>
+
+    <!-- Tab: Steps -->
+    <div class="tab-content active" id="tab-steps">
+      <div id="guide-steps">
+        <div class="step-card">
+          <span class="step-number">1</span>
+          <div class="step-text">電源スイッチをONにする</div>
+        </div>
+        <div class="step-card">
+          <span class="step-number">2</span>
+          <div class="step-text">原点復帰ボタンを押す（X軸→Z軸の順）</div>
+        </div>
+        <div class="step-card">
+          <span class="step-number">3</span>
+          <div class="step-text">ワークをチャックに取り付ける</div>
+        </div>
+        <div class="step-card">
+          <span class="step-number">4</span>
+          <div class="step-text">プログラムを選択して確認する</div>
+        </div>
+        <div class="step-card">
+          <span class="step-number">5</span>
+          <div class="step-text">ドアを閉めて起動ボタンを押す</div>
+        </div>
+      </div>
+
+      <!-- AI Quick Ask -->
+      <div class="ai-ask-section">
+        <h4>🤖 この機械についてAIに質問</h4>
+        <div class="ai-quick-questions">
+          <button class="ai-quick-btn" data-q="この機械の安全上の注意点は？">安全注意点</button>
+          <button class="ai-quick-btn" data-q="異音がする場合の原因は？">異音の原因</button>
+          <button class="ai-quick-btn" data-q="定期メンテナンスの項目は？">メンテナンス</button>
+          <button class="ai-quick-btn" data-q="加工精度が出ない原因は？">精度不良</button>
+        </div>
+        <div id="ai-answer" style="margin-top:12px;font-size:0.9em;line-height:1.6;display:none;">
+          <div id="ai-answer-text"></div>
+          <button class="read-aloud-btn" id="ai-read-btn" style="margin-top:8px;">🔊 読み上げ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Specs -->
+    <div class="tab-content" id="tab-specs">
+      <table class="spec-table">
+        <tr><th>型番</th><td>CK6140</td></tr>
+        <tr><th>メーカー</th><td>FANUC</td></tr>
+        <tr><th>設置年</th><td>2020年4月</td></tr>
+        <tr><th>最大加工径</th><td>φ400mm</td></tr>
+        <tr><th>最大加工長</th><td>1000mm</td></tr>
+        <tr><th>主軸回転数</th><td>45〜4500 rpm</td></tr>
+        <tr><th>主軸モーター</th><td>7.5kW</td></tr>
+        <tr><th>制御装置</th><td>FANUC 0i-TF Plus</td></tr>
+        <tr><th>重量</th><td>3,200 kg</td></tr>
+        <tr><th>消費電力</th><td>15 kVA</td></tr>
+      </table>
+    </div>
+
+    <!-- Tab: Media -->
+    <div class="tab-content" id="tab-media">
+      <div class="media-grid">
+        <div class="media-card">
+          <div class="media-thumb">📸</div>
+          <div class="media-label">外観写真</div>
+        </div>
+        <div class="media-card">
+          <div class="media-thumb">📸</div>
+          <div class="media-label">操作パネル</div>
+        </div>
+        <div class="media-card">
+          <div class="media-thumb">🎬</div>
+          <div class="media-label">起動手順（動画）</div>
+        </div>
+        <div class="media-card">
+          <div class="media-thumb">🎬</div>
+          <div class="media-label">ワーク取付（動画）</div>
+        </div>
+        <div class="media-card">
+          <div class="media-thumb">📸</div>
+          <div class="media-label">チャック部分</div>
+        </div>
+        <div class="media-card">
+          <div class="media-thumb">📸</div>
+          <div class="media-label">安全装置</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Checklist -->
+    <div class="tab-content" id="tab-checklist">
+      <h3 style="font-size:0.95em;margin-bottom:12px;">始業前点検チェックリスト</h3>
+      <div id="checklist-items">
+        <div class="checklist-item"><input type="checkbox"> 切削油の量を確認</div>
+        <div class="checklist-item"><input type="checkbox"> チャックの締め付け確認</div>
+        <div class="checklist-item"><input type="checkbox"> 安全カバーの確認</div>
+        <div class="checklist-item"><input type="checkbox"> 異音・異臭がないか確認</div>
+        <div class="checklist-item"><input type="checkbox"> 非常停止ボタンの動作確認</div>
+        <div class="checklist-item"><input type="checkbox"> 切粉の清掃</div>
+        <div class="checklist-item"><input type="checkbox"> 工具の摩耗チェック</div>
+        <div class="checklist-item"><input type="checkbox"> 原点復帰の実施</div>
+      </div>
+    </div>
+
+    <!-- Tab: History -->
+    <div class="tab-content" id="tab-history">
+      <div class="history-item">
+        <div class="history-date">2026-03-10 14:30</div>
+        <div class="history-text">定期メンテナンス実施（切削油交換、ベルト点検）</div>
+      </div>
+      <div class="history-item">
+        <div class="history-date">2026-03-05 09:15</div>
+        <div class="history-text">異音発生 → ベアリング交換で解決</div>
+      </div>
+      <div class="history-item">
+        <div class="history-date">2026-02-20 16:00</div>
+        <div class="history-text">加工精度低下 → ツールオフセット再設定</div>
+      </div>
+      <div class="history-item">
+        <div class="history-date">2026-01-15 10:00</div>
+        <div class="history-text">年次点検（メーカー）完了</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Tab switching
+    document.querySelectorAll('.detail-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+      });
+    });
+
+    // Checklist
+    document.querySelectorAll('.checklist-item input').forEach(cb => {
+      cb.addEventListener('change', () => {
+        cb.parentElement.classList.toggle('checked', cb.checked);
+      });
+    });
+
+    // AI Quick Questions
+    const aiModel = localStorage.getItem('genba-model') || 'gemma3:latest';
+    const lang = localStorage.getItem('genba-lang') || 'ja';
+    const voiceSpeed = parseFloat(localStorage.getItem('genba-voice-speed') || '1');
+
+    document.querySelectorAll('.ai-quick-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const q = btn.dataset.q;
+        const answerDiv = document.getElementById('ai-answer');
+        const answerText = document.getElementById('ai-answer-text');
+        answerDiv.style.display = 'block';
+        answerText.textContent = 'AI回答生成中...';
+
+        try {
+          const machineName = document.getElementById('machine-name').textContent;
+          const langNames = { ja: '日本語', en: 'English', th: 'ภาษาไทย', vi: 'Tiếng Việt' };
+          const res = await fetch('http://localhost:11434/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: aiModel,
+              prompt: `${machineName}について: ${q}`,
+              system: `You are a factory equipment expert. Answer in ${langNames[lang] || '日本語'}. Be concise and practical.`,
+              stream: false,
+            }),
+          });
+          const data = await res.json();
+          answerText.textContent = data.response;
+        } catch (e) {
+          answerText.textContent = 'エラー: Ollamaに接続できません。ollama serveが起動しているか確認してください。';
+        }
+      });
+    });
+
+    // Read aloud
+    document.getElementById('ai-read-btn').addEventListener('click', () => {
+      const text = document.getElementById('ai-answer-text').textContent;
+      if (!text || !('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      const langMap = { ja: 'ja-JP', en: 'en-US', th: 'th-TH', vi: 'vi-VN' };
+      u.lang = langMap[lang] || 'ja-JP';
+      u.rate = voiceSpeed;
+      window.speechSynthesis.speak(u);
+    });
+
+    // Apply theme
+    const theme = localStorage.getItem('genba-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    const fontSize = localStorage.getItem('genba-fontsize') || 'medium';
+    document.documentElement.setAttribute('data-fontsize', fontSize);
+  </script>
+</body>
+</html>

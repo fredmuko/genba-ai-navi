@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ログイン - 現場AIナビ</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <style>
+    body {
+      /* Uses l-login on body for layout */
+    }
+
+    .login-container {
+      /* Uses l-login__card for layout */
+      border-radius: 20px;
+    }
+
+    .login-logo {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .login-logo .logo-icon {
+      font-size: 3em;
+      display: block;
+      margin-bottom: 8px;
+      animation: logoBounceIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    @keyframes logoBounceIn {
+      0% {
+        opacity: 0;
+        transform: scale(0.3) translateY(-20px);
+      }
+      50% {
+        opacity: 0.8;
+        transform: scale(1.05) translateY(0);
+      }
+      70% {
+        transform: scale(0.95);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .login-logo h1 {
+      font-size: 1.4em;
+      color: var(--text);
+    }
+
+    .login-logo p {
+      font-size: 0.85em;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 0.85em;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .form-group input,
+    .form-group select {
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 1em;
+      background: var(--bg);
+      color: var(--text);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
+    }
+
+    .form-group input.input-error {
+      border-color: var(--danger, #d93025);
+      box-shadow: 0 0 0 3px rgba(217, 48, 37, 0.12);
+    }
+
+    .form-group .validation-msg {
+      font-size: 0.75em;
+      color: var(--danger, #d93025);
+      display: none;
+      margin-top: 2px;
+    }
+
+    .form-group .validation-msg.visible {
+      display: block;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.05em;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .login-btn:active { background: var(--primary-dark); }
+
+    .login-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .login-spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    .login-btn.loading .login-spinner {
+      display: inline-block;
+    }
+
+    .login-btn.loading .login-btn-text {
+      display: none;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .lang-selector {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .lang-chip {
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--bg);
+      cursor: pointer;
+      font-size: 0.8em;
+      color: var(--text);
+      transition: all 0.2s;
+    }
+
+    .lang-chip.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .login-error {
+      display: none;
+      background: #fce8e6;
+      color: var(--danger);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.85em;
+      text-align: center;
+    }
+
+    .login-footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.75em;
+      color: var(--text-secondary);
+    }
+
+    .qr-login {
+      text-align: center;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .qr-login p {
+      font-size: 0.8em;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .qr-btn {
+      padding: 10px 20px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.9em;
+      color: var(--text);
+    }
+
+    .remember-me {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85em;
+      color: var(--text-secondary);
+    }
+
+    .remember-me input { width: 18px; height: 18px; accent-color: var(--primary); }
+
+    .forgot-pin {
+      text-align: right;
+      margin-top: -6px;
+    }
+
+    .forgot-pin a {
+      font-size: 0.78em;
+      color: var(--primary, #1a73e8);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .forgot-pin a:hover {
+      text-decoration: underline;
+    }
+
+    .forgot-pin-help {
+      display: none;
+      background: var(--bg, #f5f5f5);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.8em;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+
+    .forgot-pin-help.visible {
+      display: block;
+    }
+
+    .offline-indicator {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: #fff3e0;
+      color: #e65100;
+      border-radius: 20px;
+      font-size: 0.75em;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .offline-indicator.online {
+      display: flex;
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .offline-indicator.offline {
+      display: flex;
+      background: #fff3e0;
+      color: #e65100;
+    }
+
+    .offline-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Demo accounts section */
+    .demo-accounts {
+      margin-top: 16px;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+
+    .demo-accounts-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 6px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.78em;
+      color: var(--text-secondary);
+    }
+
+    .demo-accounts-toggle:hover {
+      color: var(--text);
+    }
+
+    .demo-accounts-toggle .toggle-arrow {
+      transition: transform 0.2s;
+      font-size: 0.7em;
+    }
+
+    .demo-accounts-toggle.expanded .toggle-arrow {
+      transform: rotate(180deg);
+    }
+
+    .demo-accounts-list {
+      display: block;
+      margin-top: 8px;
+    }
+
+    .demo-accounts-list.hidden {
+      display: none;
+    }
+
+    .demo-accounts-list table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.75em;
+    }
+
+    .demo-accounts-list th {
+      text-align: left;
+      padding: 4px 8px;
+      color: var(--text-secondary);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .demo-accounts-list td {
+      padding: 4px 8px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .demo-accounts-list tr.demo-row:hover td {
+      color: var(--primary, #1a73e8);
+      background: rgba(26, 115, 232, 0.05);
+    }
+  </style>
+</head>
+<body class="l-login">
+  <div class="login-container l-login__card">
+    <!-- Offline Indicator -->
+    <div class="offline-indicator" id="offline-indicator">
+      <span class="offline-dot"></span>
+      <span id="offline-text"></span>
+    </div>
+
+    <!-- Language Selector -->
+    <div class="lang-selector">
+      <button class="lang-chip active" data-lang="ja">🇯🇵 日本語</button>
+      <button class="lang-chip" data-lang="en">🇺🇸 EN</button>
+      <button class="lang-chip" data-lang="th">🇹🇭 ไทย</button>
+      <button class="lang-chip" data-lang="vi">🇻🇳 VN</button>
+    </div>
+
+    <!-- Logo -->
+    <div class="login-logo">
+      <span class="logo-icon">🏭</span>
+      <h1 id="login-title">現場AIナビ</h1>
+      <p id="login-subtitle">ログインしてください</p>
+    </div>
+
+    <!-- Error Message -->
+    <div class="login-error" id="login-error"></div>
+
+    <!-- Login Form -->
+    <form class="login-form" id="login-form">
+      <div class="form-group">
+        <label id="label-id">社員番号 / Employee ID</label>
+        <input type="text" id="input-id" placeholder="例: EMP-001" autocomplete="username" required>
+        <span class="validation-msg" id="validation-id"></span>
+      </div>
+
+      <div class="form-group">
+        <label id="label-pin">暗証番号 / PIN</label>
+        <input type="password" id="input-pin" placeholder="4桁の暗証番号" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="current-password" required>
+        <span class="validation-msg" id="validation-pin"></span>
+      </div>
+
+      <div class="forgot-pin">
+        <a id="forgot-pin-link" href="javascript:void(0)">暗証番号を忘れた場合</a>
+        <div class="forgot-pin-help" id="forgot-pin-help"></div>
+      </div>
+
+      <div class="form-group">
+        <label id="label-role">役割 / Role</label>
+        <select id="input-role">
+          <option value="operator" id="role-operator">オペレーター</option>
+          <option value="leader" id="role-leader">ラインリーダー</option>
+          <option value="maintenance" id="role-maintenance">保全担当</option>
+          <option value="manager" id="role-manager">管理者</option>
+        </select>
+      </div>
+
+      <div class="remember-me">
+        <input type="checkbox" id="remember-check" checked>
+        <label for="remember-check" id="label-remember">ログイン状態を保持</label>
+      </div>
+
+      <button type="submit" class="login-btn" id="login-btn">
+        <span class="login-btn-text">ログイン</span>
+        <span class="login-spinner"></span>
+      </button>
+    </form>
+
+    <!-- QR Login -->
+    <div class="qr-login">
+      <p id="qr-text">または社員証のQRコードでログイン</p>
+      <button class="qr-btn" id="qr-btn">📷 QRコードスキャン</button>
+    </div>
+
+    <!-- Demo Accounts -->
+    <div class="demo-accounts">
+      <button class="demo-accounts-toggle expanded" id="demo-toggle">
+        <span id="demo-toggle-text">デモアカウント</span>
+        <span class="toggle-arrow">▼</span>
+      </button>
+      <div class="demo-accounts-list visible" id="demo-list">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>PIN</th>
+              <th id="demo-header-name">名前</th>
+              <th id="demo-header-role">役割</th>
+            </tr>
+          </thead>
+          <tbody id="demo-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="login-footer">
+      <p>Genba AI Navi v2.0</p>
+    </div>
+  </div>
+
+  <script>
+    // ========== i18n ==========
+    const loginTexts = {
+      ja: {
+        title: '現場AIナビ',
+        subtitle: 'ログインしてください',
+        labelId: '社員番号',
+        labelPin: '暗証番号',
+        labelRole: '役割',
+        roleOperator: 'オペレーター',
+        roleLeader: 'ラインリーダー',
+        roleMaintenance: '保全担当',
+        roleManager: '管理者',
+        remember: 'ログイン状態を保持',
+        loginBtn: 'ログイン',
+        qrText: 'または社員証のQRコードでログイン',
+        qrBtn: '📷 QRコードスキャン',
+        errorEmpty: '社員番号と暗証番号を入力してください',
+        errorInvalid: '社員番号または暗証番号が正しくありません',
+        forgotPin: '暗証番号を忘れた場合',
+        forgotPinHelp: '暗証番号を忘れた場合は、現場の管理者またはIT部門にお問い合わせください。社員証と本人確認書類をご持参の上、管理事務所までお越しください。',
+        validationIdEmpty: '社員番号を入力してください',
+        validationPinFormat: 'PINは4桁の数字で入力してください',
+        offlineReady: 'オフライン対応済み',
+        offlineNoConnection: 'オフラインモード',
+        demoToggle: 'デモアカウント',
+        demoName: '名前',
+        demoRole: '役割',
+        logging: 'ログイン中...',
+      },
+      en: {
+        title: 'Genba AI Navi',
+        subtitle: 'Please log in',
+        labelId: 'Employee ID',
+        labelPin: 'PIN Code',
+        labelRole: 'Role',
+        roleOperator: 'Operator',
+        roleLeader: 'Line Leader',
+        roleMaintenance: 'Maintenance',
+        roleManager: 'Manager',
+        remember: 'Stay logged in',
+        loginBtn: 'Log In',
+        qrText: 'Or scan your employee badge QR code',
+        qrBtn: '📷 Scan QR Code',
+        errorEmpty: 'Please enter Employee ID and PIN',
+        errorInvalid: 'Invalid Employee ID or PIN',
+        forgotPin: 'Forgot PIN?',
+        forgotPinHelp: 'If you forgot your PIN, please contact your site manager or IT department. Bring your employee badge and ID to the admin office.',
+        validationIdEmpty: 'Please enter your Employee ID',
+        validationPinFormat: 'PIN must be 4 digits',
+        offlineReady: 'Offline ready',
+        offlineNoConnection: 'Offline mode',
+        demoToggle: 'Demo Accounts',
+        demoName: 'Name',
+        demoRole: 'Role',
+        logging: 'Logging in...',
+      },
+      th: {
+        title: 'Genba AI Navi',
+        subtitle: 'กรุณาเข้าสู่ระบบ',
+        labelId: 'รหัสพนักงาน',
+        labelPin: 'รหัส PIN',
+        labelRole: 'ตำแหน่ง',
+        roleOperator: 'ผู้ปฏิบัติงาน',
+        roleLeader: 'หัวหน้าไลน์',
+        roleMaintenance: 'ช่างซ่อมบำรุง',
+        roleManager: 'ผู้จัดการ',
+        remember: 'คงสถานะเข้าสู่ระบบ',
+        loginBtn: 'เข้าสู่ระบบ',
+        qrText: 'หรือสแกน QR Code บัตรพนักงาน',
+        qrBtn: '📷 สแกน QR Code',
+        errorEmpty: 'กรุณากรอกรหัสพนักงานและ PIN',
+        errorInvalid: 'รหัสพนักงานหรือ PIN ไม่ถูกต้อง',
+        forgotPin: 'ลืมรหัส PIN?',
+        forgotPinHelp: 'หากลืมรหัส PIN กรุณาติดต่อผู้จัดการหรือฝ่าย IT นำบัตรพนักงานและบัตรประชาชนไปที่สำนักงาน',
+        validationIdEmpty: 'กรุณากรอกรหัสพนักงาน',
+        validationPinFormat: 'PIN ต้องเป็นตัวเลข 4 หลัก',
+        offlineReady: 'ใช้งานออฟไลน์ได้',
+        offlineNoConnection: 'โหมดออฟไลน์',
+        demoToggle: 'บัญชีทดสอบ',
+        demoName: 'ชื่อ',
+        demoRole: 'ตำแหน่ง',
+        logging: 'กำลังเข้าสู่ระบบ...',
+      },
+      vi: {
+        title: 'Genba AI Navi',
+        subtitle: 'Vui lòng đăng nhập',
+        labelId: 'Mã nhân viên',
+        labelPin: 'Mã PIN',
+        labelRole: 'Vai trò',
+        roleOperator: 'Vận hành',
+        roleLeader: 'Trưởng dây chuyền',
+        roleMaintenance: 'Bảo trì',
+        roleManager: 'Quản lý',
+        remember: 'Duy trì đăng nhập',
+        loginBtn: 'Đăng nhập',
+        qrText: 'Hoặc quét mã QR thẻ nhân viên',
+        qrBtn: '📷 Quét mã QR',
+        errorEmpty: 'Vui lòng nhập mã nhân viên và PIN',
+        errorInvalid: 'Mã nhân viên hoặc PIN không đúng',
+        forgotPin: 'Quên mã PIN?',
+        forgotPinHelp: 'Nếu quên mã PIN, vui lòng liên hệ quản lý hoặc bộ phận IT. Mang theo thẻ nhân viên và giấy tờ tùy thân đến văn phòng.',
+        validationIdEmpty: 'Vui lòng nhập mã nhân viên',
+        validationPinFormat: 'PIN phải là 4 chữ số',
+        offlineReady: 'Sẵn sàng ngoại tuyến',
+        offlineNoConnection: 'Chế độ ngoại tuyến',
+        demoToggle: 'Tài khoản demo',
+        demoName: 'Tên',
+        demoRole: 'Vai trò',
+        logging: 'Đang đăng nhập...',
+      },
+    };
+
+    const roleLabels = {
+      ja: { operator: 'オペレーター', leader: 'リーダー', maintenance: '保全', manager: '管理者' },
+      en: { operator: 'Operator', leader: 'Leader', maintenance: 'Maintenance', manager: 'Manager' },
+      th: { operator: 'ผู้ปฏิบัติงาน', leader: 'หัวหน้า', maintenance: 'ช่างซ่อม', manager: 'ผู้จัดการ' },
+      vi: { operator: 'Vận hành', leader: 'Trưởng', maintenance: 'Bảo trì', manager: 'Quản lý' },
+    };
+
+    let currentLang = localStorage.getItem('genba-lang') || 'ja';
+
+    function applyLoginLang(lang) {
+      currentLang = lang;
+      localStorage.setItem('genba-lang', lang);
+      const t = loginTexts[lang] || loginTexts.ja;
+
+      document.getElementById('login-title').textContent = t.title;
+      document.getElementById('login-subtitle').textContent = t.subtitle;
+      document.getElementById('label-id').textContent = t.labelId;
+      document.getElementById('label-pin').textContent = t.labelPin;
+      document.getElementById('label-role').textContent = t.labelRole;
+      document.getElementById('role-operator').textContent = t.roleOperator;
+      document.getElementById('role-leader').textContent = t.roleLeader;
+      document.getElementById('role-maintenance').textContent = t.roleMaintenance;
+      document.getElementById('role-manager').textContent = t.roleManager;
+      document.getElementById('label-remember').textContent = t.remember;
+      document.getElementById('login-btn').querySelector('.login-btn-text').textContent = t.loginBtn;
+      document.getElementById('qr-text').textContent = t.qrText;
+      document.getElementById('qr-btn').textContent = t.qrBtn;
+      document.getElementById('forgot-pin-link').textContent = t.forgotPin;
+      document.getElementById('forgot-pin-help').textContent = t.forgotPinHelp;
+      document.getElementById('demo-toggle-text').textContent = t.demoToggle;
+      document.getElementById('demo-header-name').textContent = t.demoName;
+      document.getElementById('demo-header-role').textContent = t.demoRole;
+
+      document.querySelectorAll('.lang-chip').forEach(c => {
+        c.classList.toggle('active', c.dataset.lang === lang);
+      });
+
+      updateOfflineIndicator();
+      renderDemoAccounts();
+    }
+
+    // Language chips
+    document.querySelectorAll('.lang-chip').forEach(chip => {
+      chip.addEventListener('click', () => applyLoginLang(chip.dataset.lang));
+    });
+
+    // ========== Demo Users ==========
+    const demoUsers = [
+      { id: 'EMP-001', pin: '1234', name: '田中太郎', role: 'operator' },
+      { id: 'EMP-002', pin: '5678', name: 'Somchai', role: 'operator' },
+      { id: 'EMP-003', pin: '9012', name: 'Nguyen Van A', role: 'operator' },
+      { id: 'EMP-100', pin: '0000', name: '管理者', role: 'manager' },
+    ];
+
+    // Apply saved language (after demoUsers is defined)
+    applyLoginLang(currentLang);
+
+    // ========== Demo Accounts Section ==========
+    function renderDemoAccounts() {
+      const tbody = document.getElementById('demo-tbody');
+      const roles = roleLabels[currentLang] || roleLabels.ja;
+      tbody.innerHTML = demoUsers.map(u => `
+        <tr class="demo-row" data-id="${u.id}" data-pin="${u.pin}" data-role="${u.role}">
+          <td>${u.id}</td>
+          <td>${u.pin}</td>
+          <td>${u.name}</td>
+          <td>${roles[u.role] || u.role}</td>
+        </tr>
+      `).join('');
+
+      tbody.querySelectorAll('.demo-row').forEach(row => {
+        row.addEventListener('click', () => {
+          document.getElementById('input-id').value = row.dataset.id;
+          document.getElementById('input-pin').value = row.dataset.pin;
+          document.getElementById('input-role').value = row.dataset.role;
+          clearValidation();
+        });
+      });
+    }
+
+    document.getElementById('demo-toggle').addEventListener('click', () => {
+      const toggle = document.getElementById('demo-toggle');
+      const list = document.getElementById('demo-list');
+      toggle.classList.toggle('expanded');
+      list.classList.toggle('hidden');
+    });
+
+    // ========== Input Validation ==========
+    function clearValidation() {
+      document.getElementById('input-id').classList.remove('input-error');
+      document.getElementById('input-pin').classList.remove('input-error');
+      document.getElementById('validation-id').classList.remove('visible');
+      document.getElementById('validation-pin').classList.remove('visible');
+      document.getElementById('login-error').style.display = 'none';
+    }
+
+    document.getElementById('input-id').addEventListener('input', function() {
+      if (this.value.trim()) {
+        this.classList.remove('input-error');
+        document.getElementById('validation-id').classList.remove('visible');
+      }
+    });
+
+    document.getElementById('input-pin').addEventListener('input', function() {
+      const val = this.value.trim();
+      const t = loginTexts[currentLang] || loginTexts.ja;
+      const msgEl = document.getElementById('validation-pin');
+      if (val && !/^[0-9]{0,4}$/.test(val)) {
+        this.classList.add('input-error');
+        msgEl.textContent = t.validationPinFormat;
+        msgEl.classList.add('visible');
+      } else {
+        this.classList.remove('input-error');
+        msgEl.classList.remove('visible');
+      }
+    });
+
+    // ========== Forgot PIN ==========
+    document.getElementById('forgot-pin-link').addEventListener('click', () => {
+      const help = document.getElementById('forgot-pin-help');
+      help.classList.toggle('visible');
+    });
+
+    // ========== Offline Indicator ==========
+    function updateOfflineIndicator() {
+      const indicator = document.getElementById('offline-indicator');
+      const textEl = document.getElementById('offline-text');
+      const t = loginTexts[currentLang] || loginTexts.ja;
+
+      if (navigator.onLine) {
+        indicator.className = 'offline-indicator online';
+        textEl.textContent = t.offlineReady;
+      } else {
+        indicator.className = 'offline-indicator offline';
+        textEl.textContent = t.offlineNoConnection;
+      }
+    }
+
+    window.addEventListener('online', updateOfflineIndicator);
+    window.addEventListener('offline', updateOfflineIndicator);
+    updateOfflineIndicator();
+
+    // ========== Login ==========
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const errorDiv = document.getElementById('login-error');
+      const t = loginTexts[currentLang] || loginTexts.ja;
+
+      const idInput = document.getElementById('input-id');
+      const pinInput = document.getElementById('input-pin');
+      const id = idInput.value.trim();
+      const pin = pinInput.value.trim();
+      const role = document.getElementById('input-role').value;
+
+      clearValidation();
+
+      // Field-level validation
+      let hasError = false;
+
+      if (!id) {
+        idInput.classList.add('input-error');
+        const msg = document.getElementById('validation-id');
+        msg.textContent = t.validationIdEmpty;
+        msg.classList.add('visible');
+        hasError = true;
+      }
+
+      if (!pin || !/^[0-9]{4}$/.test(pin)) {
+        pinInput.classList.add('input-error');
+        const msg = document.getElementById('validation-pin');
+        msg.textContent = !pin ? t.validationIdEmpty : t.validationPinFormat;
+        msg.classList.add('visible');
+        hasError = true;
+      }
+
+      if (hasError) {
+        errorDiv.textContent = t.errorEmpty;
+        errorDiv.style.display = 'block';
+        return;
+      }
+
+      const user = demoUsers.find(u => u.id === id && u.pin === pin);
+
+      if (!user) {
+        errorDiv.textContent = t.errorInvalid;
+        errorDiv.style.display = 'block';
+        idInput.classList.add('input-error');
+        pinInput.classList.add('input-error');
+        return;
+      }
+
+      // Show loading spinner
+      const loginBtn = document.getElementById('login-btn');
+      loginBtn.classList.add('loading');
+      loginBtn.disabled = true;
+
+      // Save session
+      const session = {
+        id: user.id,
+        name: user.name,
+        role: role,
+        loginTime: new Date().toISOString(),
+      };
+      localStorage.setItem('genba-session', JSON.stringify(session));
+      localStorage.setItem('genba-lang', currentLang);
+
+      // Brief transition before redirect
+      setTimeout(() => {
+        window.location.href = 'index.html';
+      }, 500);
+    });
+
+    // ========== QR Login ==========
+    document.getElementById('qr-btn').addEventListener('click', () => {
+      window.location.href = 'pages/qr.html';
+    });
+
+    // ========== Auto-login check ==========
+    const session = localStorage.getItem('genba-session');
+    if (session) {
+      const s = JSON.parse(session);
+      const loginTime = new Date(s.loginTime);
+      const now = new Date();
+      const hoursSinceLogin = (now - loginTime) / (1000 * 60 * 60);
+      // Auto-login if within 12 hours
+      if (hoursSinceLogin < 12) {
+        window.location.href = 'index.html';
+      } else {
+        localStorage.removeItem('genba-session');
+      }
+    }
+
+    // Theme
+    const theme = localStorage.getItem('genba-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+  </script>
+</body>
+</html>

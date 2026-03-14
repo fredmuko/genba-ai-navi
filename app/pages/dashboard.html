@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ダッシュボード - 現場AIナビ</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <style>
+    .db-page { padding: 16px; }
+
+    /* Date & Shift bar */
+    .shift-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding: 10px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .shift-bar .date-text { font-weight: 600; font-size: 0.95em; }
+    .shift-bar .shift-text { font-size: 0.8em; color: var(--text-secondary); }
+
+    .shift-selector {
+      display: flex;
+      gap: 4px;
+    }
+
+    .shift-btn {
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--bg);
+      cursor: pointer;
+      font-size: 0.8em;
+      color: var(--text);
+    }
+
+    .shift-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    /* KPI Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .kpi-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .kpi-label {
+      font-size: 0.75em;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .kpi-value {
+      font-size: 1.6em;
+      font-weight: 700;
+    }
+
+    .kpi-value.green { color: var(--success); }
+    .kpi-value.yellow { color: #e37400; }
+    .kpi-value.red { color: var(--danger); }
+    .kpi-value.blue { color: var(--primary); }
+
+    .kpi-change {
+      font-size: 0.7em;
+      margin-top: 2px;
+    }
+
+    .kpi-change.up { color: var(--success); }
+    .kpi-change.down { color: var(--danger); }
+
+    /* Section */
+    .db-section {
+      margin-bottom: 20px;
+    }
+
+    .db-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .db-section-header h3 {
+      font-size: 0.95em;
+    }
+
+    .db-section-header .view-all {
+      font-size: 0.8em;
+      color: var(--primary);
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    /* Machine Status */
+    .machine-status-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .machine-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .machine-row .m-icon { font-size: 1.3em; }
+    .machine-row .m-info { flex: 1; }
+    .machine-row .m-name { font-weight: 600; font-size: 0.9em; }
+    .machine-row .m-detail { font-size: 0.75em; color: var(--text-secondary); }
+
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-indicator.running { background: var(--success); box-shadow: 0 0 6px rgba(30,142,62,0.4); }
+    .status-indicator.stopped { background: var(--danger); }
+    .status-indicator.maintenance { background: var(--warning); animation: blink 2s infinite; }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .m-uptime {
+      font-size: 0.75em;
+      color: var(--text-secondary);
+      text-align: right;
+      min-width: 50px;
+    }
+
+    /* Bar Chart (CSS only) */
+    .chart-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .chart-title {
+      font-size: 0.85em;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 120px;
+      padding-top: 8px;
+    }
+
+    .bar-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      justify-content: flex-end;
+    }
+
+    .bar {
+      width: 100%;
+      max-width: 32px;
+      border-radius: 4px 4px 0 0;
+      transition: height 0.5s ease;
+    }
+
+    .bar.primary { background: var(--primary); }
+    .bar.success { background: var(--success); }
+    .bar.warning { background: var(--warning); }
+
+    .bar-label {
+      font-size: 0.6em;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      text-align: center;
+    }
+
+    .bar-value {
+      font-size: 0.65em;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    /* Donut chart (CSS) */
+    .donut-container {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .donut {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .donut-center {
+      position: absolute;
+      inset: 15px;
+      background: var(--bg-card);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2em;
+      font-weight: 700;
+    }
+
+    .donut-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.8em;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Alerts */
+    .alert-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .alert-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.85em;
+    }
+
+    .alert-item.critical { background: #fce8e6; border: 1px solid var(--danger); }
+    .alert-item.warning { background: #fef7e0; border: 1px solid var(--warning); }
+    .alert-item.info { background: #e8f0fe; border: 1px solid var(--primary); }
+
+    [data-theme="dark"] .alert-item.critical { background: #3e1010; }
+    [data-theme="dark"] .alert-item.warning { background: #3e2e00; }
+    [data-theme="dark"] .alert-item.info { background: #0d1b3e; }
+
+    .alert-icon { font-size: 1.1em; }
+    .alert-text { flex: 1; }
+    .alert-time { font-size: 0.7em; color: var(--text-secondary); white-space: nowrap; }
+
+    /* AI Insights */
+    .insight-card {
+      background: linear-gradient(135deg, #1a73e8, #0d47a1);
+      color: #fff;
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .insight-card h4 { font-size: 0.9em; margin-bottom: 8px; opacity: 0.9; }
+    .insight-card p { font-size: 0.85em; line-height: 1.5; opacity: 0.95; }
+
+    .insight-action {
+      margin-top: 10px;
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.8em;
+    }
+
+    /* Worker status */
+    .worker-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .worker-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px;
+      text-align: center;
+      font-size: 0.8em;
+    }
+
+    .worker-avatar { font-size: 1.5em; margin-bottom: 4px; }
+    .worker-name { font-weight: 600; font-size: 0.85em; }
+    .worker-task { font-size: 0.7em; color: var(--text-secondary); margin-top: 2px; }
+
+    .worker-status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 4px;
+    }
+
+    .worker-status-dot.online { background: var(--success); }
+    .worker-status-dot.busy { background: var(--warning); }
+    .worker-status-dot.offline { background: #ccc; }
+
+    /* Quick links */
+    .quick-links {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .quick-link {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 12px 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.7em;
+      text-align: center;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .quick-link:active { transform: scale(0.97); }
+    .quick-link .ql-icon { font-size: 1.6em; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="l-header">
+    <div class="l-header__left">
+      <button class="l-header__back" onclick="window.location.href='../index.html'">←</button>
+      <span class="l-header__title" id="page-title">ダッシュボード</span>
+    </div>
+    <div class="l-header__actions">
+      <button id="refresh-btn" style="background:none;border:none;color:#fff;font-size:1.1em;cursor:pointer;">🔄</button>
+      <span style="font-size:0.75em;opacity:0.7;" id="last-update"></span>
+    </div>
+  </header>
+
+  <div class="db-page l-page l-page__content l-stack--md">
+    <!-- Shift Bar -->
+    <div class="shift-bar">
+      <div>
+        <div class="date-text" id="date-text"></div>
+        <div class="shift-text" id="shift-text"></div>
+      </div>
+      <div class="shift-selector">
+        <button class="shift-btn active" data-shift="A">A</button>
+        <button class="shift-btn" data-shift="B">B</button>
+        <button class="shift-btn" data-shift="all">ALL</button>
+      </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid l-grid-2">
+      <div class="kpi-card">
+        <div class="kpi-label" id="kpi-label-oee">総合設備効率 (OEE)</div>
+        <div class="kpi-value green" id="kpi-oee">87.2%</div>
+        <div class="kpi-change up">▲ 2.1% 前日比</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label" id="kpi-label-avail">稼働率</div>
+        <div class="kpi-value blue" id="kpi-avail">92.5%</div>
+        <div class="kpi-change up">▲ 1.3%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label" id="kpi-label-quality">良品率</div>
+        <div class="kpi-value green" id="kpi-quality">98.7%</div>
+        <div class="kpi-change up">▲ 0.2%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label" id="kpi-label-downtime">ダウンタイム</div>
+        <div class="kpi-value yellow" id="kpi-downtime">23分</div>
+        <div class="kpi-change down">▼ 12分</div>
+      </div>
+    </div>
+
+    <!-- Alerts -->
+    <div class="db-section">
+      <div class="db-section-header">
+        <h3 id="alert-title">⚠️ アラート</h3>
+      </div>
+      <div class="alert-list" id="alert-list">
+        <div class="alert-item warning">
+          <span class="alert-icon">⚠️</span>
+          <span class="alert-text" id="alert-1">溶接ロボット RW-200: メンテナンス予定超過（3日）</span>
+          <span class="alert-time">10:30</span>
+        </div>
+        <div class="alert-item info">
+          <span class="alert-icon">ℹ️</span>
+          <span class="alert-text" id="alert-2">CNC旋盤 CK6140: 工具寿命 残り20%</span>
+          <span class="alert-time">09:15</span>
+        </div>
+        <div class="alert-item info">
+          <span class="alert-icon">📋</span>
+          <span class="alert-text" id="alert-3">プレス機 AP-100: 始業点検未完了</span>
+          <span class="alert-time">08:00</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Machine Status -->
+    <div class="db-section">
+      <div class="db-section-header">
+        <h3 id="machine-title">🏭 機械ステータス</h3>
+        <button class="view-all" onclick="window.location.href='data-manager.html'">全て見る →</button>
+      </div>
+      <div class="machine-status-list" id="machine-list"></div>
+    </div>
+
+    <!-- Production Chart -->
+    <div class="db-section">
+      <div class="db-section-header">
+        <h3 id="prod-title">📊 本日の生産実績</h3>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title" id="chart-prod-title">時間別生産数</div>
+        <div class="bar-chart" id="production-chart"></div>
+      </div>
+    </div>
+
+    <!-- OEE Donut -->
+    <div class="db-section">
+      <div class="db-section-header">
+        <h3 id="oee-title">🎯 OEE内訳</h3>
+      </div>
+      <div class="chart-card">
+        <div class="donut-container">
+          <div class="donut" id="oee-donut" style="background: conic-gradient(#1e8e3e 0% 92.5%, #1a73e8 92.5% 97.5%, #f9ab00 97.5% 98.7%, #d93025 98.7% 100%);">
+            <div class="donut-center">87%</div>
+          </div>
+          <div class="donut-legend">
+            <div class="legend-item"><span class="legend-dot" style="background:#1e8e3e;"></span> 稼働 92.5%</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#1a73e8;"></span> 性能 94.2%</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#f9ab00;"></span> 品質 98.7%</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#d93025;"></span> ロス 1.3%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Insights -->
+    <div class="db-section">
+      <div class="db-section-header">
+        <h3 id="insight-title">🤖 AI分析</h3>
+      </div>
+      <div class="insight-card">
+        <h4>予防保全の提案</h4>
+        <p id="insight-text">CNC旋盤 CK6140 の主軸ベアリング振動値が先週比15%増加しています。過去の故障パターンから、2週間以内にベアリング交換が必要になる可能性があります。</p>
+        <button class="insight-action" onclick="window.location.href='chat.html'">💬 AIに詳細を聞く</button>
+      </div>
+      <div class="insight-card" style="background: linear-gradient(135deg, #1e8e3e, #0d6e2e);">
+        <h4>生産効率の改善点</h4>
+        <p id="insight-text-2">プレス機 AP-100 の段取り替え時間が平均18分です。標準の12分と比較して6分のロスがあります。段取り手順の最適化で月間約3時間の稼働時間増加が見込めます。</p>
+        <button class="insight-action" onclick="window.location.href='chat.html'">📊 改善案を見る</button>
+      </div>
+    </div>
+
+    <!-- Workers -->
+    <div class="db-section">
+      <div class="db-section-header">
+        <h3 id="worker-title">👷 作業者ステータス</h3>
+      </div>
+      <div class="worker-grid l-grid-3" id="worker-grid">
+        <div class="worker-card">
+          <div class="worker-avatar">👷</div>
+          <div class="worker-name">田中太郎</div>
+          <div class="worker-task"><span class="worker-status-dot online"></span>CNC旋盤</div>
+        </div>
+        <div class="worker-card">
+          <div class="worker-avatar">👷</div>
+          <div class="worker-name">Somchai</div>
+          <div class="worker-task"><span class="worker-status-dot online"></span>CNC旋盤</div>
+        </div>
+        <div class="worker-card">
+          <div class="worker-avatar">👷</div>
+          <div class="worker-name">Nguyen</div>
+          <div class="worker-task"><span class="worker-status-dot busy"></span>プレス機</div>
+        </div>
+        <div class="worker-card">
+          <div class="worker-avatar">🔧</div>
+          <div class="worker-name">山本修</div>
+          <div class="worker-task"><span class="worker-status-dot busy"></span>保全作業中</div>
+        </div>
+        <div class="worker-card">
+          <div class="worker-avatar">👔</div>
+          <div class="worker-name">佐藤健一</div>
+          <div class="worker-task"><span class="worker-status-dot online"></span>巡回中</div>
+        </div>
+        <div class="worker-card">
+          <div class="worker-avatar">👤</div>
+          <div class="worker-name">管理者</div>
+          <div class="worker-task"><span class="worker-status-dot offline"></span>オフライン</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="db-section">
+      <div class="db-section-header">
+        <h3>🔗 クイックリンク</h3>
+      </div>
+      <div class="quick-links l-grid-4">
+        <a class="quick-link" href="chat.html">
+          <span class="ql-icon">🤖</span>
+          <span>AIチャット</span>
+        </a>
+        <a class="quick-link" href="maintenance-contact.html">
+          <span class="ql-icon">🔧</span>
+          <span>保全連絡</span>
+        </a>
+        <a class="quick-link" href="data-manager.html">
+          <span class="ql-icon">📊</span>
+          <span>データ管理</span>
+        </a>
+        <a class="quick-link" href="detail.html">
+          <span class="ql-icon">🏭</span>
+          <span>機械詳細</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========== Init ==========
+    const lang = localStorage.getItem('genba-lang') || 'ja';
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('genba-theme') || 'light');
+    document.documentElement.setAttribute('data-fontsize', localStorage.getItem('genba-fontsize') || 'medium');
+
+    // Date
+    const now = new Date();
+    const dateOpts = lang === 'ja' ? { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }
+      : { year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' };
+    const locale = { ja: 'ja-JP', en: 'en-US', th: 'th-TH', vi: 'vi-VN' }[lang] || 'ja-JP';
+    document.getElementById('date-text').textContent = now.toLocaleDateString(locale, dateOpts);
+
+    const hour = now.getHours();
+    const shiftName = hour >= 6 && hour < 14 ? 'A' : hour >= 14 && hour < 22 ? 'B' : 'C';
+    const shiftLabels = { ja: 'シフト', en: 'Shift', th: 'กะ', vi: 'Ca' };
+    document.getElementById('shift-text').textContent = `${shiftLabels[lang] || 'シフト'} ${shiftName} (${hour}:00)`;
+
+    document.getElementById('last-update').textContent = now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+
+    // Shift selector
+    document.querySelectorAll('.shift-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    // Refresh
+    document.getElementById('refresh-btn').addEventListener('click', () => {
+      document.getElementById('last-update').textContent = new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+      // Animate KPIs
+      document.querySelectorAll('.kpi-value').forEach(el => {
+        el.style.transition = 'transform 0.2s';
+        el.style.transform = 'scale(1.1)';
+        setTimeout(() => el.style.transform = 'scale(1)', 200);
+      });
+    });
+
+    // ========== Machine Status ==========
+    fetch('../../data/machines.json')
+      .then(r => r.json())
+      .then(data => {
+        const list = document.getElementById('machine-list');
+        const uptimes = { running: '8h 23m', maintenance: '--', stopped: '0h' };
+        const statusLabels = {
+          running: { ja: '稼働中', en: 'Running', th: 'ทำงาน', vi: 'Đang chạy' },
+          stopped: { ja: '停止', en: 'Stopped', th: 'หยุด', vi: 'Dừng' },
+          maintenance: { ja: 'メンテナンス', en: 'Maintenance', th: 'ซ่อมบำรุง', vi: 'Bảo trì' },
+        };
+
+        list.innerHTML = data.machines.map(m => `
+          <div class="machine-row" onclick="window.location.href='detail.html?machine=${m.id}'" style="cursor:pointer;">
+            <span class="m-icon">${m.icon}</span>
+            <div class="m-info">
+              <div class="m-name">${m.name[lang] || m.name.en}</div>
+              <div class="m-detail">${m.specs.model} / ${statusLabels[m.status]?.[lang] || m.status}</div>
+            </div>
+            <div class="m-uptime">${uptimes[m.status] || '--'}</div>
+            <div class="status-indicator ${m.status}"></div>
+          </div>
+        `).join('');
+      })
+      .catch(() => {});
+
+    // ========== Production Chart ==========
+    const prodData = [
+      { label: '8:00', value: 42 },
+      { label: '9:00', value: 58 },
+      { label: '10:00', value: 65 },
+      { label: '11:00', value: 51 },
+      { label: '12:00', value: 20 },
+      { label: '13:00', value: 62 },
+      { label: '14:00', value: 70 },
+      { label: '15:00', value: 55 },
+    ];
+
+    const maxVal = Math.max(...prodData.map(d => d.value));
+    const chart = document.getElementById('production-chart');
+    chart.innerHTML = prodData.map(d => {
+      const h = (d.value / maxVal) * 100;
+      const color = d.value >= 60 ? 'success' : d.value >= 40 ? 'primary' : 'warning';
+      return `
+        <div class="bar-group">
+          <div class="bar-value">${d.value}</div>
+          <div class="bar ${color}" style="height: ${h}%;"></div>
+          <div class="bar-label">${d.label}</div>
+        </div>
+      `;
+    }).join('');
+
+    // ========== i18n ==========
+    const texts = {
+      ja: { title: 'ダッシュボード', oee: '総合設備効率 (OEE)', avail: '稼働率', quality: '良品率', downtime: 'ダウンタイム',
+            alert: '⚠️ アラート', machine: '🏭 機械ステータス', prod: '📊 本日の生産実績', oeeTitle: '🎯 OEE内訳',
+            insight: '🤖 AI分析', worker: '👷 作業者ステータス', chartTitle: '時間別生産数' },
+      en: { title: 'Dashboard', oee: 'Overall Equipment Effectiveness', avail: 'Availability', quality: 'Quality Rate', downtime: 'Downtime',
+            alert: '⚠️ Alerts', machine: '🏭 Machine Status', prod: '📊 Today\'s Production', oeeTitle: '🎯 OEE Breakdown',
+            insight: '🤖 AI Insights', worker: '👷 Worker Status', chartTitle: 'Hourly Production' },
+      th: { title: 'แดชบอร์ด', oee: 'ประสิทธิภาพรวม (OEE)', avail: 'อัตราการทำงาน', quality: 'อัตราของดี', downtime: 'เวลาหยุด',
+            alert: '⚠️ การแจ้งเตือน', machine: '🏭 สถานะเครื่องจักร', prod: '📊 ผลผลิตวันนี้', oeeTitle: '🎯 รายละเอียด OEE',
+            insight: '🤖 การวิเคราะห์ AI', worker: '👷 สถานะพนักงาน', chartTitle: 'ผลผลิตรายชั่วโมง' },
+      vi: { title: 'Bảng điều khiển', oee: 'Hiệu suất tổng thể (OEE)', avail: 'Tỷ lệ hoạt động', quality: 'Tỷ lệ đạt', downtime: 'Thời gian dừng',
+            alert: '⚠️ Cảnh báo', machine: '🏭 Trạng thái máy', prod: '📊 Sản xuất hôm nay', oeeTitle: '🎯 Chi tiết OEE',
+            insight: '🤖 Phân tích AI', worker: '👷 Trạng thái công nhân', chartTitle: 'Sản lượng theo giờ' },
+    };
+
+    const t = texts[lang] || texts.ja;
+    document.getElementById('page-title').textContent = t.title;
+    document.getElementById('kpi-label-oee').textContent = t.oee;
+    document.getElementById('kpi-label-avail').textContent = t.avail;
+    document.getElementById('kpi-label-quality').textContent = t.quality;
+    document.getElementById('kpi-label-downtime').textContent = t.downtime;
+    document.getElementById('alert-title').textContent = t.alert;
+    document.getElementById('machine-title').textContent = t.machine;
+    document.getElementById('prod-title').textContent = t.prod;
+    document.getElementById('oee-title').textContent = t.oeeTitle;
+    document.getElementById('insight-title').textContent = t.insight;
+    document.getElementById('worker-title').textContent = t.worker;
+    document.getElementById('chart-prod-title').textContent = t.chartTitle;
+
+    // Auto refresh every 60s
+    setInterval(() => {
+      document.getElementById('last-update').textContent = new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    }, 60000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>点検チェックリスト - 現場AIナビ</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <style>
+    /* ========== Checklist Page Styles ========== */
+    /* Header layout handled by l-header in layout.css */
+
+    .cl-header .cl-lang {
+      display: flex; align-items: center; gap: 4px;
+      background: rgba(255,255,255,0.2);
+      border: none; color: #fff;
+      padding: 6px 12px; border-radius: 20px;
+      cursor: pointer; font-size: 0.85em;
+    }
+
+    .cl-body {
+      /* padding-top via l-page, extra bottom for sticky submit */
+      padding-bottom: 100px;
+    }
+
+    .cl-section { padding: 16px; }
+
+    /* Summary Bar */
+    .cl-summary {
+      display: flex; gap: 8px;
+      margin-bottom: 16px; flex-wrap: wrap;
+    }
+
+    .cl-summary-chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 0.8em;
+      white-space: nowrap;
+      box-shadow: var(--shadow);
+    }
+
+    .cl-summary-chip .chip-val { font-weight: 600; }
+    .cl-summary-chip .chip-val.complete { color: var(--success); }
+    .cl-summary-chip .chip-val.pending { color: var(--warning); }
+
+    /* Timer */
+    .cl-timer {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 0.8em;
+      font-variant-numeric: tabular-nums;
+      box-shadow: var(--shadow);
+    }
+
+    /* Machine Selector */
+    .cl-select-group {
+      margin-bottom: 16px;
+    }
+
+    .cl-select-group label {
+      display: block;
+      font-size: 0.85em;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .cl-select-group select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 1em;
+      background: var(--bg-card);
+      color: var(--text);
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%235f6368' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+
+    /* Tabs */
+    .cl-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .cl-tab {
+      flex: 1; min-width: 0;
+      padding: 10px 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.8em;
+      text-align: center;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .cl-tab.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* Progress Bar */
+    .cl-progress-wrap {
+      margin-bottom: 16px;
+    }
+
+    .cl-progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8em;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .cl-progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .cl-progress-fill {
+      height: 100%;
+      background: var(--success);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+
+    /* Checklist Items */
+    .cl-items { display: flex; flex-direction: column; gap: 8px; }
+
+    .cl-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+      transition: border-color 0.2s;
+    }
+
+    .cl-item.status-pass { border-left: 4px solid var(--success); }
+    .cl-item.status-fail { border-left: 4px solid var(--danger); }
+    .cl-item.status-na { border-left: 4px solid var(--text-secondary); }
+
+    .cl-item-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .cl-item-header input[type="checkbox"] {
+      width: 20px; height: 20px;
+      accent-color: var(--primary);
+      cursor: pointer; flex-shrink: 0;
+    }
+
+    .cl-item-title {
+      flex: 1;
+      font-size: 0.95em;
+      font-weight: 500;
+    }
+
+    .cl-item-num {
+      display: inline-flex;
+      align-items: center; justify-content: center;
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      font-size: 0.75em;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    /* Status Toggle */
+    .cl-status-toggle {
+      display: flex; gap: 4px;
+      margin-top: 10px; margin-left: 34px;
+    }
+
+    .cl-status-btn {
+      padding: 4px 12px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--bg);
+      cursor: pointer;
+      font-size: 0.75em;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+
+    .cl-status-btn.active-pass { background: var(--success); color: #fff; border-color: var(--success); }
+    .cl-status-btn.active-fail { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .cl-status-btn.active-na { background: var(--text-secondary); color: #fff; border-color: var(--text-secondary); }
+
+    /* Photo & Comment */
+    .cl-item-actions {
+      display: flex; gap: 8px; align-items: center;
+      margin-top: 10px; margin-left: 34px;
+    }
+
+    .cl-photo-btn {
+      display: flex; align-items: center; gap: 4px;
+      padding: 6px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.75em;
+      color: var(--text-secondary);
+    }
+
+    .cl-photo-btn.has-photo { border-color: var(--primary); color: var(--primary); }
+
+    .cl-photo-preview {
+      width: 40px; height: 40px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+      display: none;
+    }
+
+    .cl-comment-toggle {
+      background: none; border: none;
+      cursor: pointer; font-size: 0.85em;
+      color: var(--text-secondary);
+      padding: 4px;
+    }
+
+    .cl-comment-area {
+      margin-top: 8px; margin-left: 34px;
+      display: none;
+    }
+
+    .cl-comment-area.open { display: block; }
+
+    .cl-comment-area textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.85em;
+      font-family: inherit;
+      background: var(--bg);
+      color: var(--text);
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    /* Signature Pad */
+    .cl-signature-section {
+      margin-top: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .cl-signature-section h3 {
+      font-size: 0.95em;
+      margin-bottom: 12px;
+      color: var(--text-secondary);
+    }
+
+    .cl-signature-canvas {
+      width: 100%;
+      height: 120px;
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      background: #fff;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    [data-theme="dark"] .cl-signature-canvas { background: #2a2a3e; }
+
+    .cl-signature-actions {
+      display: flex; gap: 8px;
+      margin-top: 8px;
+      justify-content: flex-end;
+    }
+
+    .cl-btn-sm {
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      cursor: pointer;
+      font-size: 0.8em;
+      color: var(--text-secondary);
+    }
+
+    /* Submit */
+    .cl-submit-area {
+      margin-top: 20px;
+      display: flex; gap: 8px;
+    }
+
+    .cl-submit-area .btn-primary {
+      flex: 1;
+      padding: 14px;
+      font-size: 1em;
+    }
+
+    .cl-submit-area .btn-secondary {
+      padding: 14px;
+      font-size: 1em;
+    }
+
+    /* History Section */
+    .cl-history-section {
+      margin-top: 24px;
+    }
+
+    .cl-history-section h3 {
+      font-size: 0.95em;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .cl-history-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 0.85em;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    .cl-history-item:active { transform: scale(0.98); }
+
+    .cl-history-icon { font-size: 1.2em; }
+
+    .cl-history-info { flex: 1; }
+    .cl-history-title { font-weight: 500; }
+    .cl-history-meta { font-size: 0.8em; color: var(--text-secondary); margin-top: 2px; }
+
+    .cl-history-badge {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75em;
+      font-weight: 600;
+    }
+
+    .cl-history-badge.complete { background: rgba(30,142,62,0.12); color: var(--success); }
+    .cl-history-badge.partial { background: rgba(249,171,0,0.12); color: var(--warning); }
+
+    /* Lang Modal (standalone page) */
+    .cl-lang-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200;
+    }
+
+    .cl-lang-modal.hidden { display: none; }
+
+    .cl-lang-modal-content {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 90%; max-width: 360px;
+      text-align: center;
+    }
+
+    .cl-lang-modal-content h2 { margin-bottom: 16px; font-size: 1.1em; }
+
+    .cl-lang-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+
+    .cl-lang-opt {
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      cursor: pointer;
+      font-size: 1.05em;
+      color: var(--text);
+    }
+
+    .cl-lang-opt:hover, .cl-lang-opt.active {
+      background: rgba(26,115,232,0.1);
+      border-color: var(--primary);
+    }
+
+    /* Print styles */
+    @media print {
+      .cl-header, .cl-submit-area, .cl-history-section,
+      .cl-photo-btn, .cl-comment-toggle, .cl-signature-actions,
+      .cl-lang, .cl-back { display: none !important; }
+
+      .cl-body { padding-top: 0; padding-bottom: 0; }
+
+      .cl-item { break-inside: avoid; }
+
+      .cl-comment-area { display: block !important; }
+
+      .cl-signature-section { break-inside: avoid; }
+
+      .cl-print-header {
+        display: block !important;
+        text-align: center;
+        margin-bottom: 16px;
+        border-bottom: 2px solid #333;
+        padding-bottom: 8px;
+      }
+
+      .cl-print-header h2 { font-size: 1.2em; margin-bottom: 4px; }
+      .cl-print-header p { font-size: 0.85em; color: #666; }
+    }
+
+    .cl-print-header { display: none; }
+
+    /* Empty state */
+    .cl-empty {
+      text-align: center;
+      color: var(--text-secondary);
+      padding: 40px 16px;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="l-header cl-header">
+    <div class="l-header__left">
+      <button class="l-header__back cl-back" id="btn-back" aria-label="Back">&#8592;</button>
+      <span class="l-header__title" id="page-title">点検チェックリスト</span>
+    </div>
+    <div class="l-header__actions">
+      <button class="cl-lang" id="btn-lang">
+        <span>&#x1F310;</span>
+        <span id="current-lang">JA</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Language Modal -->
+  <div class="cl-lang-modal hidden" id="lang-modal">
+    <div class="cl-lang-modal-content">
+      <h2>言語 / Language</h2>
+      <div class="cl-lang-options">
+        <button class="cl-lang-opt" data-lang="ja">&#x1F1EF;&#x1F1F5; 日本語</button>
+        <button class="cl-lang-opt" data-lang="en">&#x1F1FA;&#x1F1F8; English</button>
+        <button class="cl-lang-opt" data-lang="th">&#x1F1F9;&#x1F1ED; ภาษาไทย</button>
+        <button class="cl-lang-opt" data-lang="vi">&#x1F1FB;&#x1F1F3; Tiếng Việt</button>
+      </div>
+      <button class="btn-secondary" id="lang-modal-close">閉じる</button>
+    </div>
+  </div>
+
+  <!-- Print Header -->
+  <div class="cl-print-header" id="print-header">
+    <h2 id="print-title">点検チェックリスト</h2>
+    <p id="print-meta"></p>
+  </div>
+
+  <!-- Main Body -->
+  <div class="l-page cl-body">
+    <div class="cl-section">
+
+      <!-- Summary Bar -->
+      <div class="cl-summary" id="summary-bar">
+        <div class="cl-summary-chip">
+          <span>&#x2705;</span>
+          <span class="chip-val complete" id="summary-done">0</span>
+          <span>/</span>
+          <span class="chip-val" id="summary-total">0</span>
+        </div>
+        <div class="cl-summary-chip">
+          <span>&#x2705;</span>
+          <span class="chip-val complete" id="summary-pass">0</span>
+          <span id="lbl-pass">合格</span>
+        </div>
+        <div class="cl-summary-chip">
+          <span>&#x274C;</span>
+          <span class="chip-val pending" id="summary-fail">0</span>
+          <span id="lbl-fail">不合格</span>
+        </div>
+        <div class="cl-timer" id="timer-chip">
+          <span>&#x23F1;</span>
+          <span id="timer-display">00:00:00</span>
+        </div>
+      </div>
+
+      <!-- Machine Selector -->
+      <div class="cl-select-group">
+        <label id="lbl-machine">対象機械</label>
+        <select id="machine-select"></select>
+      </div>
+
+      <!-- Checklist Type Tabs -->
+      <div class="cl-tabs" id="type-tabs"></div>
+
+      <!-- Progress Bar -->
+      <div class="cl-progress-wrap">
+        <div class="cl-progress-label">
+          <span id="lbl-progress">進捗</span>
+          <span id="progress-pct">0%</span>
+        </div>
+        <div class="cl-progress-bar">
+          <div class="cl-progress-fill" id="progress-fill"></div>
+        </div>
+      </div>
+
+      <!-- Checklist Items -->
+      <div class="cl-items" id="checklist-items"></div>
+
+      <!-- Signature -->
+      <div class="cl-signature-section" id="signature-section">
+        <h3 id="lbl-signature">署名</h3>
+        <canvas class="cl-signature-canvas" id="signature-canvas"></canvas>
+        <div class="cl-signature-actions">
+          <button class="cl-btn-sm" id="btn-sig-clear" type="button">クリア</button>
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <div class="cl-submit-area">
+        <button class="btn-secondary" id="btn-export" type="button">&#x1F5A8; 印刷</button>
+        <button class="btn-primary" id="btn-submit" type="button">提出</button>
+      </div>
+
+      <!-- History -->
+      <div class="cl-history-section">
+        <h3 id="lbl-history">完了済みチェックリスト</h3>
+        <div id="history-list"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    'use strict';
+
+    // ========== State ==========
+    const lang = localStorage.getItem('genba-lang') || 'ja';
+    const theme = localStorage.getItem('genba-theme') || 'light';
+    const fontSize = localStorage.getItem('genba-fontsize') || 'medium';
+    let currentLang = lang;
+    let currentMachine = 'cnc-001';
+    let currentType = 'pre';
+    let machinesData = [];
+    let timerStart = Date.now();
+    let timerInterval = null;
+    let itemStates = {}; // { idx: { checked, status, comment, photo } }
+
+    // Apply theme/fontsize
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-fontsize', fontSize);
+
+    // ========== i18n ==========
+    const i18n = {
+      ja: {
+        title: '点検チェックリスト',
+        machine: '対象機械',
+        progress: '進捗',
+        signature: '署名',
+        clear: 'クリア',
+        submit: '提出',
+        print: '印刷',
+        history: '完了済みチェックリスト',
+        pass: '合格', fail: '不合格', na: 'N/A',
+        close: '閉じる',
+        photo: '写真',
+        comment: 'コメント',
+        submitted: '提出完了',
+        submitConfirm: 'チェックリストを提出しますか？',
+        noHistory: '完了済みのチェックリストはありません',
+        complete: '完了', partial: '一部未完了',
+        tabs: { pre: '始業前点検', end: '終業時点検', weekly: '週次点検' },
+        elapsed: '経過時間',
+        back: '戻る',
+      },
+      en: {
+        title: 'Inspection Checklist',
+        machine: 'Target Machine',
+        progress: 'Progress',
+        signature: 'Signature',
+        clear: 'Clear',
+        submit: 'Submit',
+        print: 'Print',
+        history: 'Completed Checklists',
+        pass: 'Pass', fail: 'Fail', na: 'N/A',
+        close: 'Close',
+        photo: 'Photo',
+        comment: 'Comment',
+        submitted: 'Submitted',
+        submitConfirm: 'Submit this checklist?',
+        noHistory: 'No completed checklists',
+        complete: 'Complete', partial: 'Partial',
+        tabs: { pre: 'Pre-shift', end: 'End-of-shift', weekly: 'Weekly' },
+        elapsed: 'Elapsed',
+        back: 'Back',
+      },
+      th: {
+        title: 'รายการตรวจสอบ',
+        machine: 'เครื่องจักรเป้าหมาย',
+        progress: 'ความคืบหน้า',
+        signature: 'ลายเซ็น',
+        clear: 'ล้าง',
+        submit: 'ส่ง',
+        print: 'พิมพ์',
+        history: 'รายการที่เสร็จแล้ว',
+        pass: 'ผ่าน', fail: 'ไม่ผ่าน', na: 'N/A',
+        close: 'ปิด',
+        photo: 'รูปภาพ',
+        comment: 'ความคิดเห็น',
+        submitted: 'ส่งแล้ว',
+        submitConfirm: 'ส่งรายการตรวจสอบนี้?',
+        noHistory: 'ไม่มีรายการที่เสร็จแล้ว',
+        complete: 'เสร็จสิ้น', partial: 'บางส่วน',
+        tabs: { pre: 'ก่อนเริ่มงาน', end: 'สิ้นสุดกะ', weekly: 'รายสัปดาห์' },
+        elapsed: 'เวลาที่ผ่าน',
+        back: 'กลับ',
+      },
+      vi: {
+        title: 'Danh sach kiem tra',
+        machine: 'May muc tieu',
+        progress: 'Tien do',
+        signature: 'Chu ky',
+        clear: 'Xoa',
+        submit: 'Gui',
+        print: 'In',
+        history: 'Danh sach da hoan thanh',
+        pass: 'Dat', fail: 'Khong dat', na: 'N/A',
+        close: 'Dong',
+        photo: 'Anh',
+        comment: 'Binh luan',
+        submitted: 'Da gui',
+        submitConfirm: 'Gui danh sach kiem tra nay?',
+        noHistory: 'Khong co danh sach da hoan thanh',
+        complete: 'Hoan thanh', partial: 'Mot phan',
+        tabs: { pre: 'Truoc ca', end: 'Cuoi ca', weekly: 'Hang tuan' },
+        elapsed: 'Thoi gian',
+        back: 'Quay lai',
+      },
+    };
+
+    // Correct Vietnamese with diacritics
+    i18n.vi = {
+      title: 'Danh s\u00E1ch ki\u1EC3m tra',
+      machine: 'M\u00E1y m\u1EE5c ti\u00EAu',
+      progress: 'Ti\u1EBFn \u0111\u1ED9',
+      signature: 'Ch\u1EEF k\u00FD',
+      clear: 'X\u00F3a',
+      submit: 'G\u1EEDi',
+      print: 'In',
+      history: 'Danh s\u00E1ch \u0111\u00E3 ho\u00E0n th\u00E0nh',
+      pass: '\u0110\u1EA1t', fail: 'Kh\u00F4ng \u0111\u1EA1t', na: 'N/A',
+      close: '\u0110\u00F3ng',
+      photo: '\u1EA2nh',
+      comment: 'B\u00ECnh lu\u1EADn',
+      submitted: '\u0110\u00E3 g\u1EEDi',
+      submitConfirm: 'G\u1EEDi danh s\u00E1ch ki\u1EC3m tra n\u00E0y?',
+      noHistory: 'Kh\u00F4ng c\u00F3 danh s\u00E1ch \u0111\u00E3 ho\u00E0n th\u00E0nh',
+      complete: 'Ho\u00E0n th\u00E0nh', partial: 'M\u1ED9t ph\u1EA7n',
+      tabs: { pre: 'Tr\u01B0\u1EDBc ca', end: 'Cu\u1ED1i ca', weekly: 'H\u00E0ng tu\u1EA7n' },
+      elapsed: 'Th\u1EDDi gian',
+      back: 'Quay l\u1EA1i',
+    };
+
+    function t(key) {
+      const keys = key.split('.');
+      let val = i18n[currentLang] || i18n.ja;
+      for (const k of keys) { val = val?.[k]; }
+      return val || key;
+    }
+
+    // ========== Checklist Data ==========
+    const checklistData = {
+      'cnc-001': {
+        pre: {
+          ja: ['切削油量確認', 'チャック締付確認', '安全カバー確認', '異音異臭確認', '非常停止動作確認', '切粉清掃', '工具摩耗確認', '原点復帰'],
+          en: ['Check cutting oil level', 'Verify chuck tightness', 'Check safety cover', 'Check for unusual sounds/smells', 'Test emergency stop', 'Clean chips', 'Check tool wear', 'Perform home return'],
+          th: ['ตรวจสอบระดับน้ำมันตัด', 'ตรวจสอบการขันหัวจับ', 'ตรวจสอบฝาครอบนิรภัย', 'ตรวจสอบเสียง/กลิ่นผิดปกติ', 'ทดสอบปุ่มหยุดฉุกเฉิน', 'ทำความสะอาดเศษ', 'ตรวจสอบการสึกหรอของเครื่องมือ', 'กลับตำแหน่งเดิม'],
+          vi: ['Ki\u1EC3m tra m\u1EE9c d\u1EA7u c\u1EAFt', 'Ki\u1EC3m tra l\u1EF1c k\u1EB9p m\u00E2m c\u1EB7p', 'Ki\u1EC3m tra n\u1EAFp an to\u00E0n', 'Ki\u1EC3m tra ti\u1EBFng/m\u00F9i b\u1EA5t th\u01B0\u1EDDng', 'Ki\u1EC3m tra n\u00FAt d\u1EEBng kh\u1EA9n c\u1EA5p', 'D\u1ECDn phoi', 'Ki\u1EC3m tra m\u00F2n dao', 'Th\u1EF1c hi\u1EC7n v\u1EC1 g\u1ED1c'],
+        },
+        end: {
+          ja: ['電源OFF確認', '作業場所清掃', '異常報告', '工具整理・保管'],
+          en: ['Confirm power off', 'Clean work area', 'Report issues', 'Organize & secure tools'],
+          th: ['ยืนยันปิดไฟ', 'ทำความสะอาดพื้นที่ทำงาน', 'รายงานปัญหา', 'จัดเก็บเครื่องมือ'],
+          vi: ['X\u00E1c nh\u1EADn t\u1EAFt ngu\u1ED3n', 'D\u1ECDn khu v\u1EF1c l\u00E0m vi\u1EC7c', 'B\u00E1o c\u00E1o v\u1EA5n \u0111\u1EC1', 'S\u1EAFp x\u1EBFp & c\u1EA5t d\u1EE5ng c\u1EE5'],
+        },
+        weekly: {
+          ja: ['キャリブレーション実施', '潤滑油レベル確認', 'フィルター交換', 'テストラン実施', '精度測定・記録', 'ベルト張力チェック'],
+          en: ['Perform calibration', 'Check lubricant level', 'Replace filters', 'Perform test run', 'Measure & record accuracy', 'Check belt tension'],
+          th: ['ทำการสอบเทียบ', 'ตรวจสอบระดับน้ำมันหล่อลื่น', 'เปลี่ยนฟิลเตอร์', 'ทดสอบเดินเครื่อง', 'วัดและบันทึกความแม่นยำ', 'ตรวจสอบแรงตึงสายพาน'],
+          vi: ['Hi\u1EC7u chu\u1EA9n', 'Ki\u1EC3m tra m\u1EE9c d\u1EA7u b\u00F4i tr\u01A1n', 'Thay b\u1ED9 l\u1ECDc', 'Ch\u1EA1y th\u1EED', '\u0110o & ghi \u0111\u1ED9 ch\u00EDnh x\u00E1c', 'Ki\u1EC3m tra l\u1EF1c c\u0103ng d\u00E2y \u0111ai'],
+        },
+      },
+      'press-001': {
+        pre: {
+          ja: ['安全柵確認', '油圧レベル確認', '金型セット確認', '両手操作ボタン確認', '異音確認', '油漏れ確認'],
+          en: ['Check safety fence', 'Check hydraulic level', 'Verify die set', 'Test both-hand buttons', 'Check for unusual sounds', 'Check for oil leaks'],
+          th: ['ตรวจสอบรั้วนิรภัย', 'ตรวจสอบระดับไฮดรอลิก', 'ตรวจสอบแม่พิมพ์', 'ทดสอบปุ่มสองมือ', 'ตรวจสอบเสียงผิดปกติ', 'ตรวจสอบการรั่วของน้ำมัน'],
+          vi: ['Ki\u1EC3m tra h\u00E0ng r\u00E0o an to\u00E0n', 'Ki\u1EC3m tra m\u1EE9c d\u1EA7u th\u1EE7y l\u1EF1c', 'Ki\u1EC3m tra khu\u00F4n', 'Ki\u1EC3m tra n\u00FAt hai tay', 'Ki\u1EC3m tra ti\u1EBFng b\u1EA5t th\u01B0\u1EDDng', 'Ki\u1EC3m tra r\u00F2 r\u1EC9 d\u1EA7u'],
+        },
+        end: {
+          ja: ['油圧ポンプ停止確認', '作業場所清掃', '異常報告'],
+          en: ['Confirm hydraulic pump off', 'Clean work area', 'Report issues'],
+          th: ['ยืนยันปิดปั๊มไฮดรอลิก', 'ทำความสะอาดพื้นที่ทำงาน', 'รายงานปัญหา'],
+          vi: ['X\u00E1c nh\u1EADn t\u1EAFt b\u01A1m th\u1EE7y l\u1EF1c', 'D\u1ECDn khu v\u1EF1c l\u00E0m vi\u1EC7c', 'B\u00E1o c\u00E1o v\u1EA5n \u0111\u1EC1'],
+        },
+        weekly: {
+          ja: ['油圧ホース点検', '金型摩耗チェック', 'フィルター確認', 'テストプレス実施'],
+          en: ['Inspect hydraulic hoses', 'Check die wear', 'Check filters', 'Perform test press'],
+          th: ['ตรวจสอบท่อไฮดรอลิก', 'ตรวจสอบการสึกหรอแม่พิมพ์', 'ตรวจสอบฟิลเตอร์', 'ทดสอบกด'],
+          vi: ['Ki\u1EC3m tra \u1ED1ng th\u1EE7y l\u1EF1c', 'Ki\u1EC3m tra m\u00F2n khu\u00F4n', 'Ki\u1EC3m tra b\u1ED9 l\u1ECDc', 'D\u1EADp th\u1EED'],
+        },
+      },
+      'welder-001': {
+        pre: {
+          ja: ['ガスバルブ確認', 'トーチチップ確認', 'ワイヤー残量確認', '安全エリア確認', '接地確認', '排気確認'],
+          en: ['Check gas valve', 'Check torch tip', 'Check wire level', 'Check safety area', 'Verify grounding', 'Check exhaust'],
+          th: ['ตรวจสอบวาล์วแก๊ส', 'ตรวจสอบหัวเชื่อม', 'ตรวจสอบระดับลวด', 'ตรวจสอบพื้นที่ปลอดภัย', 'ตรวจสอบการต่อสายดิน', 'ตรวจสอบระบบระบายอากาศ'],
+          vi: ['Ki\u1EC3m tra van kh\u00ED', 'Ki\u1EC3m tra \u0111\u1EA7u h\u00E0n', 'Ki\u1EC3m tra m\u1EE9c d\u00E2y', 'Ki\u1EC3m tra v\u00F9ng an to\u00E0n', 'Ki\u1EC3m tra n\u1ED1i \u0111\u1EA5t', 'Ki\u1EC3m tra x\u1EA3 kh\u00ED'],
+        },
+        end: {
+          ja: ['ガスバルブ閉鎖確認', '作業場所清掃', '異常報告', 'トーチ保管'],
+          en: ['Confirm gas valve closed', 'Clean work area', 'Report issues', 'Store torch'],
+          th: ['ยืนยันปิดวาล์วแก๊ส', 'ทำความสะอาดพื้นที่ทำงาน', 'รายงานปัญหา', 'เก็บหัวเชื่อม'],
+          vi: ['X\u00E1c nh\u1EADn \u0111\u00F3ng van kh\u00ED', 'D\u1ECDn khu v\u1EF1c l\u00E0m vi\u1EC7c', 'B\u00E1o c\u00E1o v\u1EA5n \u0111\u1EC1', 'C\u1EA5t \u0111\u1EA7u h\u00E0n'],
+        },
+        weekly: {
+          ja: ['ワイヤーフィーダー点検', 'ガス流量キャリブレーション', 'ロボットアーム潤滑', 'テスト溶接実施', '排気フィルター清掃'],
+          en: ['Inspect wire feeder', 'Calibrate gas flow', 'Lubricate robot arm', 'Perform test weld', 'Clean exhaust filter'],
+          th: ['ตรวจสอบตัวป้อนลวด', 'สอบเทียบอัตราการไหลของแก๊ส', 'หล่อลื่นแขนหุ่นยนต์', 'ทดสอบเชื่อม', 'ทำความสะอาดฟิลเตอร์ระบาย'],
+          vi: ['Ki\u1EC3m tra b\u1ED9 c\u1EA5p d\u00E2y', 'Hi\u1EC7u chu\u1EA9n l\u01B0u l\u01B0\u1EE3ng kh\u00ED', 'B\u00F4i tr\u01A1n c\u00E1nh tay robot', 'H\u00E0n th\u1EED', 'V\u1EC7 sinh b\u1ED9 l\u1ECDc x\u1EA3 kh\u00ED'],
+        },
+      },
+    };
+
+    // Machine names (loaded from JSON, fallback inline)
+    const machineNames = {
+      'cnc-001': { ja: 'CNC旋盤 CK6140', en: 'CNC Lathe CK6140', th: 'เครื่องกลึง CNC CK6140', vi: 'M\u00E1y ti\u1EC7n CNC CK6140' },
+      'press-001': { ja: 'プレス機 AP-100', en: 'Press Machine AP-100', th: 'เครื่องกด AP-100', vi: 'M\u00E1y d\u1EADp AP-100' },
+      'welder-001': { ja: '溶接ロボット RW-200', en: 'Welding Robot RW-200', th: 'หุ่นยนต์เชื่อม RW-200', vi: 'Robot h\u00E0n RW-200' },
+    };
+
+    const machineIcons = { 'cnc-001': '\uD83C\uDFED', 'press-001': '\uD83D\uDD28', 'welder-001': '\u26A1' };
+
+    // ========== Load machines.json ==========
+    async function loadMachines() {
+      try {
+        const res = await fetch('../../data/machines.json');
+        const data = await res.json();
+        machinesData = data.machines;
+        // Update machine names from JSON
+        machinesData.forEach(m => {
+          if (machineNames[m.id]) {
+            machineNames[m.id] = m.name;
+          }
+        });
+      } catch (e) {
+        console.warn('Could not load machines.json, using fallback data');
+      }
+      buildMachineSelect();
+    }
+
+    // ========== Build UI ==========
+    function buildMachineSelect() {
+      const sel = document.getElementById('machine-select');
+      sel.innerHTML = '';
+      Object.keys(machineNames).forEach(id => {
+        const opt = document.createElement('option');
+        opt.value = id;
+        const name = machineNames[id][currentLang] || machineNames[id].en;
+        opt.textContent = (machineIcons[id] || '') + ' ' + name;
+        sel.appendChild(opt);
+      });
+      sel.value = currentMachine;
+      sel.addEventListener('change', () => {
+        currentMachine = sel.value;
+        resetChecklist();
+      });
+    }
+
+    function buildTabs() {
+      const tabs = document.getElementById('type-tabs');
+      tabs.innerHTML = '';
+      ['pre', 'end', 'weekly'].forEach(type => {
+        const btn = document.createElement('button');
+        btn.className = 'cl-tab' + (type === currentType ? ' active' : '');
+        btn.textContent = t('tabs.' + type);
+        btn.dataset.type = type;
+        btn.addEventListener('click', () => {
+          currentType = type;
+          document.querySelectorAll('.cl-tab').forEach(tb => tb.classList.remove('active'));
+          btn.classList.add('active');
+          resetChecklist();
+        });
+        tabs.appendChild(btn);
+      });
+    }
+
+    function getItems() {
+      const data = checklistData[currentMachine]?.[currentType];
+      if (!data) return [];
+      return data[currentLang] || data.en || [];
+    }
+
+    function resetChecklist() {
+      itemStates = {};
+      timerStart = Date.now();
+      renderItems();
+      updateSummary();
+    }
+
+    function renderItems() {
+      const container = document.getElementById('checklist-items');
+      const items = getItems();
+
+      if (items.length === 0) {
+        container.innerHTML = '<div class="cl-empty">' + t('noHistory') + '</div>';
+        return;
+      }
+
+      container.innerHTML = items.map((item, idx) => {
+        const st = itemStates[idx] || {};
+        const statusClass = st.status === 'pass' ? 'status-pass' : st.status === 'fail' ? 'status-fail' : st.status === 'na' ? 'status-na' : '';
+        return `
+          <div class="cl-item ${statusClass}" data-idx="${idx}">
+            <div class="cl-item-header">
+              <input type="checkbox" ${st.checked ? 'checked' : ''} data-action="check" data-idx="${idx}">
+              <span class="cl-item-num">${idx + 1}</span>
+              <span class="cl-item-title">${item}</span>
+            </div>
+            <div class="cl-status-toggle">
+              <button class="cl-status-btn ${st.status === 'pass' ? 'active-pass' : ''}" data-action="status" data-idx="${idx}" data-val="pass">${t('pass')}</button>
+              <button class="cl-status-btn ${st.status === 'fail' ? 'active-fail' : ''}" data-action="status" data-idx="${idx}" data-val="fail">${t('fail')}</button>
+              <button class="cl-status-btn ${st.status === 'na' ? 'active-na' : ''}" data-action="status" data-idx="${idx}" data-val="na">${t('na')}</button>
+            </div>
+            <div class="cl-item-actions">
+              <label class="cl-photo-btn ${st.photo ? 'has-photo' : ''}">
+                <input type="file" accept="image/*" capture="environment" style="display:none" data-action="photo" data-idx="${idx}">
+                &#x1F4F7; ${t('photo')}
+              </label>
+              ${st.photo ? '<img class="cl-photo-preview" src="' + st.photo + '" style="display:inline-block">' : ''}
+              <button class="cl-comment-toggle" data-action="toggle-comment" data-idx="${idx}">&#x1F4AC; ${t('comment')}</button>
+            </div>
+            <div class="cl-comment-area ${st.commentOpen ? 'open' : ''}">
+              <textarea placeholder="${t('comment')}..." data-action="comment" data-idx="${idx}">${st.comment || ''}</textarea>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Event delegation
+      container.addEventListener('change', handleItemEvent);
+      container.addEventListener('click', handleItemEvent);
+      container.addEventListener('input', handleItemEvent);
+    }
+
+    function handleItemEvent(e) {
+      const target = e.target;
+      const action = target.dataset.action;
+      const idx = parseInt(target.dataset.idx);
+      if (isNaN(idx)) return;
+
+      if (!itemStates[idx]) itemStates[idx] = {};
+
+      if (action === 'check') {
+        itemStates[idx].checked = target.checked;
+        if (target.checked && !itemStates[idx].status) {
+          itemStates[idx].status = 'pass';
+        }
+        updateItemUI(idx);
+        updateSummary();
+      } else if (action === 'status') {
+        e.preventDefault();
+        const val = target.dataset.val;
+        itemStates[idx].status = itemStates[idx].status === val ? null : val;
+        if (itemStates[idx].status) {
+          itemStates[idx].checked = true;
+        }
+        updateItemUI(idx);
+        updateSummary();
+      } else if (action === 'photo') {
+        const file = target.files?.[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            itemStates[idx].photo = ev.target.result;
+            updateItemUI(idx);
+          };
+          reader.readAsDataURL(file);
+        }
+      } else if (action === 'toggle-comment') {
+        itemStates[idx].commentOpen = !itemStates[idx].commentOpen;
+        const area = target.closest('.cl-item').querySelector('.cl-comment-area');
+        area.classList.toggle('open', itemStates[idx].commentOpen);
+      } else if (action === 'comment') {
+        itemStates[idx].comment = target.value;
+      }
+    }
+
+    function updateItemUI(idx) {
+      const el = document.querySelector(`.cl-item[data-idx="${idx}"]`);
+      if (!el) return;
+      const st = itemStates[idx] || {};
+
+      // Update checkbox
+      const cb = el.querySelector('input[type="checkbox"]');
+      if (cb) cb.checked = !!st.checked;
+
+      // Update status class
+      el.classList.remove('status-pass', 'status-fail', 'status-na');
+      if (st.status) el.classList.add('status-' + st.status);
+
+      // Update status buttons
+      el.querySelectorAll('.cl-status-btn').forEach(btn => {
+        btn.classList.remove('active-pass', 'active-fail', 'active-na');
+        if (btn.dataset.val === st.status) {
+          btn.classList.add('active-' + st.status);
+        }
+      });
+
+      // Update photo
+      const photoBtn = el.querySelector('.cl-photo-btn');
+      if (photoBtn) photoBtn.classList.toggle('has-photo', !!st.photo);
+
+      const preview = el.querySelector('.cl-photo-preview');
+      if (st.photo && !preview) {
+        const img = document.createElement('img');
+        img.className = 'cl-photo-preview';
+        img.src = st.photo;
+        img.style.display = 'inline-block';
+        el.querySelector('.cl-item-actions').appendChild(img);
+      } else if (preview && st.photo) {
+        preview.src = st.photo;
+        preview.style.display = 'inline-block';
+      }
+    }
+
+    function updateSummary() {
+      const items = getItems();
+      const total = items.length;
+      let done = 0, pass = 0, fail = 0;
+
+      for (let i = 0; i < total; i++) {
+        const st = itemStates[i];
+        if (st?.checked) done++;
+        if (st?.status === 'pass') pass++;
+        if (st?.status === 'fail') fail++;
+      }
+
+      document.getElementById('summary-done').textContent = done;
+      document.getElementById('summary-total').textContent = total;
+      document.getElementById('summary-pass').textContent = pass;
+      document.getElementById('summary-fail').textContent = fail;
+
+      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+      document.getElementById('progress-pct').textContent = pct + '%';
+      document.getElementById('progress-fill').style.width = pct + '%';
+    }
+
+    // ========== Timer ==========
+    function startTimer() {
+      timerStart = Date.now();
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        const elapsed = Date.now() - timerStart;
+        const h = String(Math.floor(elapsed / 3600000)).padStart(2, '0');
+        const m = String(Math.floor((elapsed % 3600000) / 60000)).padStart(2, '0');
+        const s = String(Math.floor((elapsed % 60000) / 1000)).padStart(2, '0');
+        document.getElementById('timer-display').textContent = h + ':' + m + ':' + s;
+      }, 1000);
+    }
+
+    // ========== Signature Pad ==========
+    function initSignaturePad() {
+      const canvas = document.getElementById('signature-canvas');
+      const ctx = canvas.getContext('2d');
+      let drawing = false;
+      let lastX = 0, lastY = 0;
+
+      function resize() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = (rect.width - 32) * dpr;
+        canvas.height = 120 * dpr;
+        canvas.style.width = (rect.width - 32) + 'px';
+        canvas.style.height = '120px';
+        ctx.scale(dpr, dpr);
+        ctx.strokeStyle = theme === 'dark' ? '#e0e0e0' : '#333';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+      }
+
+      resize();
+      window.addEventListener('resize', resize);
+
+      function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches ? e.touches[0] : e;
+        return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+      }
+
+      function start(e) {
+        e.preventDefault();
+        drawing = true;
+        const pos = getPos(e);
+        lastX = pos.x; lastY = pos.y;
+      }
+
+      function move(e) {
+        if (!drawing) return;
+        e.preventDefault();
+        const pos = getPos(e);
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+        lastX = pos.x; lastY = pos.y;
+      }
+
+      function end() { drawing = false; }
+
+      canvas.addEventListener('mousedown', start);
+      canvas.addEventListener('mousemove', move);
+      canvas.addEventListener('mouseup', end);
+      canvas.addEventListener('mouseleave', end);
+      canvas.addEventListener('touchstart', start, { passive: false });
+      canvas.addEventListener('touchmove', move, { passive: false });
+      canvas.addEventListener('touchend', end);
+
+      document.getElementById('btn-sig-clear').addEventListener('click', () => {
+        const dpr = window.devicePixelRatio || 1;
+        ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+      });
+    }
+
+    function getSignatureData() {
+      const canvas = document.getElementById('signature-canvas');
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let hasContent = false;
+      for (let i = 3; i < pixels.length; i += 4) {
+        if (pixels[i] > 0) { hasContent = true; break; }
+      }
+      return hasContent ? canvas.toDataURL('image/png') : null;
+    }
+
+    // ========== Submit ==========
+    function handleSubmit() {
+      if (!confirm(t('submitConfirm'))) return;
+
+      const items = getItems();
+      const total = items.length;
+      let done = 0;
+      for (let i = 0; i < total; i++) {
+        if (itemStates[i]?.checked) done++;
+      }
+
+      const elapsed = Date.now() - timerStart;
+      const machineName = machineNames[currentMachine]?.[currentLang] || machineNames[currentMachine]?.en || currentMachine;
+
+      const record = {
+        id: Date.now().toString(36),
+        date: new Date().toISOString(),
+        machine: currentMachine,
+        machineName: machineName,
+        type: currentType,
+        typeName: t('tabs.' + currentType),
+        items: items.map((item, i) => ({
+          text: item,
+          checked: !!itemStates[i]?.checked,
+          status: itemStates[i]?.status || null,
+          comment: itemStates[i]?.comment || '',
+          hasPhoto: !!itemStates[i]?.photo,
+        })),
+        total: total,
+        done: done,
+        elapsed: elapsed,
+        signature: getSignatureData(),
+        lang: currentLang,
+      };
+
+      // Save to localStorage
+      const history = JSON.parse(localStorage.getItem('genba-checklists') || '[]');
+      history.unshift(record);
+      if (history.length > 50) history.length = 50;
+      localStorage.setItem('genba-checklists', JSON.stringify(history));
+
+      alert(t('submitted'));
+      resetChecklist();
+      renderHistory();
+    }
+
+    // ========== History ==========
+    function renderHistory() {
+      const container = document.getElementById('history-list');
+      const history = JSON.parse(localStorage.getItem('genba-checklists') || '[]');
+
+      if (history.length === 0) {
+        container.innerHTML = '<div class="cl-empty">' + t('noHistory') + '</div>';
+        return;
+      }
+
+      container.innerHTML = history.slice(0, 20).map(rec => {
+        const isComplete = rec.done === rec.total;
+        const date = new Date(rec.date);
+        const dateStr = date.toLocaleDateString(currentLang === 'ja' ? 'ja-JP' : currentLang === 'th' ? 'th-TH' : currentLang === 'vi' ? 'vi-VN' : 'en-US');
+        const timeStr = date.toLocaleTimeString(currentLang === 'ja' ? 'ja-JP' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+        const icon = machineIcons[rec.machine] || '\uD83C\uDFED';
+
+        return `
+          <div class="cl-history-item">
+            <span class="cl-history-icon">${icon}</span>
+            <div class="cl-history-info">
+              <div class="cl-history-title">${rec.machineName || rec.machine} - ${rec.typeName || rec.type}</div>
+              <div class="cl-history-meta">${dateStr} ${timeStr} | ${rec.done}/${rec.total}</div>
+            </div>
+            <span class="cl-history-badge ${isComplete ? 'complete' : 'partial'}">${isComplete ? t('complete') : t('partial')}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ========== Export / Print ==========
+    function handleExport() {
+      const machineName = machineNames[currentMachine]?.[currentLang] || machineNames[currentMachine]?.en || currentMachine;
+      const typeName = t('tabs.' + currentType);
+      const dateStr = new Date().toLocaleString(currentLang === 'ja' ? 'ja-JP' : 'en-US');
+
+      document.getElementById('print-title').textContent = t('title') + ' - ' + machineName;
+      document.getElementById('print-meta').textContent = typeName + ' | ' + dateStr;
+
+      window.print();
+    }
+
+    // ========== Language ==========
+    function applyLanguage(newLang) {
+      currentLang = newLang;
+      localStorage.setItem('genba-lang', newLang);
+      document.getElementById('current-lang').textContent = newLang.toUpperCase();
+
+      // Update UI text
+      document.getElementById('page-title').textContent = t('title');
+      document.getElementById('lbl-machine').textContent = t('machine');
+      document.getElementById('lbl-progress').textContent = t('progress');
+      document.getElementById('lbl-signature').textContent = t('signature');
+      document.getElementById('btn-sig-clear').textContent = t('clear');
+      document.getElementById('btn-submit').textContent = t('submit');
+      document.getElementById('btn-export').innerHTML = '&#x1F5A8; ' + t('print');
+      document.getElementById('lbl-history').textContent = t('history');
+      document.getElementById('lbl-pass').textContent = t('pass');
+      document.getElementById('lbl-fail').textContent = t('fail');
+      document.getElementById('lang-modal-close').textContent = t('close');
+
+      buildMachineSelect();
+      buildTabs();
+      renderItems();
+      updateSummary();
+      renderHistory();
+    }
+
+    function setupLangModal() {
+      const modal = document.getElementById('lang-modal');
+      document.getElementById('btn-lang').addEventListener('click', () => modal.classList.remove('hidden'));
+      document.getElementById('lang-modal-close').addEventListener('click', () => modal.classList.add('hidden'));
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
+
+      document.querySelectorAll('.cl-lang-opt').forEach(opt => {
+        opt.addEventListener('click', () => {
+          applyLanguage(opt.dataset.lang);
+          modal.classList.add('hidden');
+        });
+      });
+    }
+
+    // ========== Back button ==========
+    document.getElementById('btn-back').addEventListener('click', () => {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = '../index.html';
+      }
+    });
+
+    // ========== Init ==========
+    function init() {
+      applyLanguage(currentLang);
+      setupLangModal();
+      initSignaturePad();
+      startTimer();
+      renderHistory();
+
+      document.getElementById('btn-submit').addEventListener('click', handleSubmit);
+      document.getElementById('btn-export').addEventListener('click', handleExport);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => { loadMachines().then(init); });
+    } else {
+      loadMachines().then(init);
+    }
+
+  })();
+  </script>
+</body>
+</html>

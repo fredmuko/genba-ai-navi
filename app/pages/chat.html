@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AIチャット - 現場AIナビ</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .chat-page {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding-top: var(--layout-header-height);
+      overflow: hidden;
+    }
+
+    /* Context Selector */
+    .context-bar {
+      flex-shrink: 0;
+      display: flex;
+      gap: 6px;
+      padding: 10px 16px;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .context-chip {
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--bg-card);
+      cursor: pointer;
+      font-size: 0.75em;
+      white-space: nowrap;
+      color: var(--text);
+      transition: all 0.2s;
+    }
+
+    .context-chip.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    /* Messages */
+    .chat-messages-full {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .msg {
+      max-width: 85%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 0.95em;
+      line-height: 1.6;
+      word-break: break-word;
+      position: relative;
+    }
+
+    .msg.user {
+      align-self: flex-end;
+      background: var(--primary);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg.ai {
+      align-self: flex-start;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+
+    .msg.system {
+      align-self: center;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      font-size: 0.8em;
+      color: var(--text-secondary);
+      text-align: center;
+      max-width: 90%;
+      border-radius: 8px;
+    }
+
+    .msg-time {
+      font-size: 0.65em;
+      opacity: 0.6;
+      margin-top: 4px;
+      text-align: right;
+    }
+
+    .msg.ai .msg-time { text-align: left; }
+
+    .msg-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .msg-action-btn {
+      background: none;
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 16px;
+      cursor: pointer;
+      font-size: 0.75em;
+      color: var(--text-secondary);
+      transition: background 0.15s;
+    }
+
+    .msg-action-btn:active { background: var(--bg); }
+
+    /* Thinking indicator */
+    .thinking-dots {
+      display: inline-flex;
+      gap: 4px;
+      padding: 4px 0;
+    }
+
+    .thinking-dots span {
+      width: 8px;
+      height: 8px;
+      background: var(--text-secondary);
+      border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out;
+    }
+
+    .thinking-dots span:nth-child(1) { animation-delay: 0s; }
+    .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Suggested Questions */
+    .suggestions {
+      flex-shrink: 0;
+      display: flex;
+      gap: 6px;
+      padding: 8px 16px;
+      overflow-x: auto;
+      border-top: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .suggestion-btn {
+      padding: 8px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.78em;
+      white-space: nowrap;
+      color: var(--text);
+    }
+
+    .suggestion-btn:active { background: rgba(26, 115, 232, 0.1); }
+
+    /* Input Area */
+    .chat-input-full {
+      flex-shrink: 0;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      background: var(--bg-card);
+      padding-bottom: calc(12px + env(safe-area-inset-bottom, 0));
+    }
+
+    .input-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .input-row textarea {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      resize: none;
+      font-size: 0.95em;
+      font-family: inherit;
+      background: var(--bg);
+      color: var(--text);
+      max-height: 120px;
+      line-height: 1.4;
+    }
+
+    .input-row textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .send-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-size: 1.2em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .send-btn:active:not(:disabled) { background: var(--primary-dark); }
+
+    .voice-btn-chat {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-size: 1.1em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .voice-btn-chat.recording {
+      background: var(--danger);
+      border-color: var(--danger);
+      animation: pulse 1s infinite;
+    }
+
+    /* Image upload */
+    .attach-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-size: 1.1em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .image-preview {
+      display: none;
+      padding: 8px 16px 0;
+    }
+
+    .image-preview img {
+      max-height: 100px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .image-preview .remove-img {
+      background: var(--danger);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      cursor: pointer;
+      font-size: 0.7em;
+      position: relative;
+      top: -50px;
+      left: -12px;
+    }
+
+    /* History sidebar */
+    .history-drawer {
+      position: fixed;
+      top: 0;
+      left: -300px;
+      width: 280px;
+      height: 100vh;
+      background: var(--bg-card);
+      border-right: 1px solid var(--border);
+      z-index: 300;
+      transition: left 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .history-drawer.open { left: 0; }
+
+    .history-drawer-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: calc(16px + env(safe-area-inset-top, 0));
+    }
+
+    .history-drawer-header h3 { font-size: 1em; }
+
+    .history-drawer-close {
+      background: none;
+      border: none;
+      font-size: 1.2em;
+      cursor: pointer;
+      color: var(--text);
+    }
+
+    .history-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .history-entry {
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85em;
+      margin-bottom: 4px;
+      color: var(--text);
+      transition: background 0.15s;
+    }
+
+    .history-entry:hover { background: var(--bg); }
+
+    .history-entry .history-q {
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .history-entry .history-t {
+      font-size: 0.75em;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .new-chat-btn {
+      margin: 8px;
+      padding: 10px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9em;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 250;
+      display: none;
+    }
+
+    .overlay.show { display: block; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="l-header">
+    <div class="l-header__left">
+      <button id="back-btn" class="l-header__back" onclick="window.location.href='../index.html'">←</button>
+      <span class="l-header__title" id="header-title">AIチャット</span>
+    </div>
+    <div class="l-header__actions">
+      <button id="history-toggle" style="background:none;border:none;color:#fff;font-size:1.2em;cursor:pointer;">☰</button>
+      <button id="lang-btn" class="icon-btn" style="color:#fff;">
+        <span>🌐</span>
+        <span id="current-lang">JA</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- History Drawer -->
+  <div class="overlay" id="overlay"></div>
+  <div class="history-drawer" id="history-drawer">
+    <div class="history-drawer-header">
+      <h3 id="history-title">質問履歴</h3>
+      <button class="history-drawer-close" id="history-close">✕</button>
+    </div>
+    <div class="history-list" id="history-list"></div>
+    <button class="new-chat-btn" id="new-chat-btn">＋ 新しいチャット</button>
+  </div>
+
+  <!-- Chat Page -->
+  <div class="chat-page l-chat">
+    <!-- Context Selector -->
+    <div class="context-bar">
+      <button class="context-chip active" data-context="general">💬 一般</button>
+      <button class="context-chip" data-context="cnc">🏭 CNC旋盤</button>
+      <button class="context-chip" data-context="press">🔨 プレス機</button>
+      <button class="context-chip" data-context="welder">⚡ 溶接ロボット</button>
+      <button class="context-chip" data-context="safety">⚠️ 安全</button>
+    </div>
+
+    <!-- Messages -->
+    <div class="chat-messages-full l-chat__messages" id="chat-messages">
+      <div class="msg system">
+        <span id="welcome-msg">AIアシスタントに質問してください。機械操作、トラブル対応、安全手順について回答します。</span>
+      </div>
+    </div>
+
+    <!-- Suggestions -->
+    <div class="suggestions" id="suggestions">
+      <button class="suggestion-btn" data-q="CNC旋盤の起動手順を教えて">起動手順</button>
+      <button class="suggestion-btn" data-q="異音がする場合どうすればいい？">異音対応</button>
+      <button class="suggestion-btn" data-q="非常停止の手順は？">非常停止</button>
+      <button class="suggestion-btn" data-q="保護具の正しい着用方法">保護具</button>
+      <button class="suggestion-btn" data-q="定期メンテナンスの項目">メンテナンス</button>
+    </div>
+
+    <!-- Image Preview -->
+    <div class="image-preview" id="image-preview">
+      <img id="preview-img" src="" alt="preview">
+      <button class="remove-img" id="remove-img">✕</button>
+    </div>
+
+    <!-- Input Area -->
+    <div class="chat-input-full l-chat__input">
+      <div class="input-row">
+        <button class="attach-btn" id="attach-btn" title="画像を添付">📎</button>
+        <textarea id="chat-input" rows="1" placeholder="質問を入力..."></textarea>
+        <button class="voice-btn-chat" id="voice-btn" title="音声入力">🎤</button>
+        <button class="send-btn" id="send-btn" disabled>➤</button>
+      </div>
+      <input type="file" id="file-input" accept="image/*" style="display:none;">
+    </div>
+  </div>
+
+  <script>
+    // ========== State ==========
+    const lang = localStorage.getItem('genba-lang') || 'ja';
+    const aiModel = localStorage.getItem('genba-model') || 'gemma3:latest';
+    const voiceEnabled = localStorage.getItem('genba-voice') !== 'false';
+    const voiceSpeed = parseFloat(localStorage.getItem('genba-voice-speed') || '1');
+    let currentContext = 'general';
+    let attachedImage = null;
+    let conversations = JSON.parse(localStorage.getItem('genba-chat-history') || '[]');
+    let currentConvoId = Date.now();
+    let messages = [];
+
+    // Theme
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('genba-theme') || 'light');
+    document.documentElement.setAttribute('data-fontsize', localStorage.getItem('genba-fontsize') || 'medium');
+
+    // ========== i18n ==========
+    const texts = {
+      ja: {
+        title: 'AIチャット', history: '質問履歴', newChat: '＋ 新しいチャット',
+        placeholder: '質問を入力...', back: '← 戻る',
+        welcome: 'AIアシスタントに質問してください。機械操作、トラブル対応、安全手順について回答します。',
+        thinking: '考え中...', error: 'エラー: Ollamaに接続できません',
+        copied: 'コピーしました', read: '🔊 読み上げ', copy: '📋 コピー',
+        general: '💬 一般', safety: '⚠️ 安全',
+        s1: '起動手順', s2: '異音対応', s3: '非常停止', s4: '保護具', s5: 'メンテナンス',
+        q1: 'CNC旋盤の起動手順を教えて', q2: '異音がする場合どうすればいい？',
+        q3: '非常停止の手順は？', q4: '保護具の正しい着用方法', q5: '定期メンテナンスの項目',
+      },
+      en: {
+        title: 'AI Chat', history: 'History', newChat: '＋ New Chat',
+        placeholder: 'Type your question...', back: '← Back',
+        welcome: 'Ask the AI assistant about machine operation, troubleshooting, and safety procedures.',
+        thinking: 'Thinking...', error: 'Error: Cannot connect to Ollama',
+        copied: 'Copied', read: '🔊 Read', copy: '📋 Copy',
+        general: '💬 General', safety: '⚠️ Safety',
+        s1: 'Startup', s2: 'Strange noise', s3: 'Emergency stop', s4: 'PPE', s5: 'Maintenance',
+        q1: 'How to start the CNC lathe?', q2: 'What to do if there is a strange noise?',
+        q3: 'Emergency stop procedure?', q4: 'Proper PPE usage', q5: 'Regular maintenance items',
+      },
+      th: {
+        title: 'แชท AI', history: 'ประวัติ', newChat: '＋ แชทใหม่',
+        placeholder: 'พิมพ์คำถาม...', back: '← กลับ',
+        welcome: 'ถามผู้ช่วย AI เกี่ยวกับการใช้เครื่องจักร การแก้ปัญหา และขั้นตอนความปลอดภัย',
+        thinking: 'กำลังคิด...', error: 'ข้อผิดพลาด: ไม่สามารถเชื่อมต่อ Ollama',
+        copied: 'คัดลอกแล้ว', read: '🔊 อ่าน', copy: '📋 คัดลอก',
+        general: '💬 ทั่วไป', safety: '⚠️ ความปลอดภัย',
+        s1: 'เริ่มเครื่อง', s2: 'เสียงผิดปกติ', s3: 'หยุดฉุกเฉิน', s4: 'อุปกรณ์ป้องกัน', s5: 'บำรุงรักษา',
+        q1: 'วิธีเริ่มเครื่องกลึง CNC?', q2: 'ทำอย่างไรเมื่อมีเสียงผิดปกติ?',
+        q3: 'ขั้นตอนหยุดฉุกเฉิน?', q4: 'วิธีสวมอุปกรณ์ป้องกันที่ถูกต้อง', q5: 'รายการบำรุงรักษาประจำ',
+      },
+      vi: {
+        title: 'Chat AI', history: 'Lịch sử', newChat: '＋ Chat mới',
+        placeholder: 'Nhập câu hỏi...', back: '← Quay lại',
+        welcome: 'Hỏi trợ lý AI về vận hành máy, xử lý sự cố và quy trình an toàn.',
+        thinking: 'Đang suy nghĩ...', error: 'Lỗi: Không thể kết nối Ollama',
+        copied: 'Đã sao chép', read: '🔊 Đọc', copy: '📋 Sao chép',
+        general: '💬 Chung', safety: '⚠️ An toàn',
+        s1: 'Khởi động', s2: 'Tiếng lạ', s3: 'Dừng khẩn cấp', s4: 'Bảo hộ', s5: 'Bảo trì',
+        q1: 'Cách khởi động máy tiện CNC?', q2: 'Phải làm gì khi có tiếng lạ?',
+        q3: 'Quy trình dừng khẩn cấp?', q4: 'Cách sử dụng đồ bảo hộ đúng', q5: 'Các mục bảo trì định kỳ',
+      },
+    };
+
+    const t = texts[lang] || texts.ja;
+
+    // Apply i18n
+    document.getElementById('header-title').textContent = t.title;
+    document.getElementById('history-title').textContent = t.history;
+    document.getElementById('new-chat-btn').textContent = t.newChat;
+    document.getElementById('chat-input').placeholder = t.placeholder;
+    document.getElementById('back-btn').textContent = t.back;
+    document.getElementById('welcome-msg').textContent = t.welcome;
+    document.getElementById('current-lang').textContent = lang.toUpperCase();
+
+    const sugBtns = document.querySelectorAll('.suggestion-btn');
+    const sKeys = ['s1','s2','s3','s4','s5'];
+    const qKeys = ['q1','q2','q3','q4','q5'];
+    sugBtns.forEach((btn, i) => {
+      btn.textContent = t[sKeys[i]];
+      btn.dataset.q = t[qKeys[i]];
+    });
+
+    // ========== Context ==========
+    const contextPrompts = {
+      general: 'You are a factory floor assistant AI.',
+      cnc: 'You are an expert on CNC lathes (model CK6140, FANUC controller). Focus on CNC lathe operation, programming, and troubleshooting.',
+      press: 'You are an expert on hydraulic press machines (model AP-100, 100-ton). Focus on press operation and safety.',
+      welder: 'You are an expert on arc welding robots (model RW-200). Focus on welding robot operation and maintenance.',
+      safety: 'You are a factory safety expert. Focus on safety procedures, PPE, emergency response, and daily inspections.',
+    };
+
+    document.querySelectorAll('.context-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.context-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        currentContext = chip.dataset.context;
+      });
+    });
+
+    // ========== Chat ==========
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+    const chatMessages = document.getElementById('chat-messages');
+
+    chatInput.addEventListener('input', () => {
+      sendBtn.disabled = !chatInput.value.trim() && !attachedImage;
+      chatInput.style.height = 'auto';
+      chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+    });
+
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    sendBtn.addEventListener('click', sendMessage);
+
+    // Suggestions
+    document.querySelectorAll('.suggestion-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        chatInput.value = btn.dataset.q;
+        sendBtn.disabled = false;
+        sendMessage();
+      });
+    });
+
+    async function sendMessage() {
+      const text = chatInput.value.trim();
+      if (!text && !attachedImage) return;
+
+      chatInput.value = '';
+      chatInput.style.height = 'auto';
+      sendBtn.disabled = true;
+      document.getElementById('suggestions').style.display = 'none';
+
+      addMessage(text, 'user');
+      messages.push({ role: 'user', content: text });
+
+      // Clear image
+      const imgData = attachedImage;
+      if (attachedImage) {
+        attachedImage = null;
+        document.getElementById('image-preview').style.display = 'none';
+      }
+
+      // Thinking
+      const thinkingEl = document.createElement('div');
+      thinkingEl.className = 'msg ai';
+      thinkingEl.innerHTML = `<div class="thinking-dots"><span></span><span></span><span></span></div>`;
+      chatMessages.appendChild(thinkingEl);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      try {
+        const langNames = { ja: '日本語', en: 'English', th: 'ภาษาไทย', vi: 'Tiếng Việt' };
+        const systemPrompt = `${contextPrompts[currentContext]} Always respond in ${langNames[lang] || '日本語'}. Keep answers clear, concise, and step-by-step. Use simple language suitable for factory workers.`;
+
+        const body = {
+          model: aiModel,
+          prompt: text,
+          system: systemPrompt,
+          stream: false,
+        };
+
+        // If vision model and image attached
+        if (imgData && aiModel.includes('vl')) {
+          body.images = [imgData.split(',')[1]];
+        }
+
+        const res = await fetch('http://localhost:11434/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+        const data = await res.json();
+        thinkingEl.remove();
+        addMessage(data.response, 'ai');
+        messages.push({ role: 'assistant', content: data.response });
+
+        // Save to history
+        saveConversation(text, data.response);
+      } catch (e) {
+        thinkingEl.remove();
+        addMessage(t.error, 'ai');
+      }
+    }
+
+    function addMessage(text, type) {
+      const el = document.createElement('div');
+      el.className = `msg ${type}`;
+
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      let html = `<div class="msg-text">${escapeHtml(text)}</div><div class="msg-time">${time}</div>`;
+
+      if (type === 'ai') {
+        html += `
+          <div class="msg-actions">
+            <button class="msg-action-btn copy-btn">${t.copy}</button>
+            <button class="msg-action-btn read-btn">${t.read}</button>
+          </div>`;
+      }
+
+      el.innerHTML = html;
+
+      if (type === 'ai') {
+        el.querySelector('.copy-btn').addEventListener('click', () => {
+          navigator.clipboard.writeText(text);
+          el.querySelector('.copy-btn').textContent = `✓ ${t.copied}`;
+          setTimeout(() => el.querySelector('.copy-btn').textContent = t.copy, 2000);
+        });
+        el.querySelector('.read-btn').addEventListener('click', () => speak(text));
+      }
+
+      chatMessages.appendChild(el);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML.replace(/\n/g, '<br>');
+    }
+
+    // ========== Image Attach ==========
+    const attachBtn = document.getElementById('attach-btn');
+    const fileInput = document.getElementById('file-input');
+
+    attachBtn.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        attachedImage = ev.target.result;
+        document.getElementById('preview-img').src = attachedImage;
+        document.getElementById('image-preview').style.display = 'block';
+        sendBtn.disabled = false;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById('remove-img').addEventListener('click', () => {
+      attachedImage = null;
+      document.getElementById('image-preview').style.display = 'none';
+      fileInput.value = '';
+      sendBtn.disabled = !chatInput.value.trim();
+    });
+
+    // ========== Voice ==========
+    const voiceBtn = document.getElementById('voice-btn');
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      const langMap = { ja: 'ja-JP', en: 'en-US', th: 'th-TH', vi: 'vi-VN' };
+
+      recognition.onresult = (event) => {
+        chatInput.value = event.results[0][0].transcript;
+        sendBtn.disabled = false;
+        voiceBtn.classList.remove('recording');
+      };
+
+      recognition.onend = () => voiceBtn.classList.remove('recording');
+      recognition.onerror = () => voiceBtn.classList.remove('recording');
+
+      voiceBtn.addEventListener('click', () => {
+        if (voiceBtn.classList.contains('recording')) {
+          recognition.stop();
+        } else {
+          recognition.lang = langMap[lang] || 'ja-JP';
+          recognition.start();
+          voiceBtn.classList.add('recording');
+        }
+      });
+    } else {
+      voiceBtn.style.display = 'none';
+    }
+
+    function speak(text) {
+      if (!voiceEnabled || !('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      const langMap = { ja: 'ja-JP', en: 'en-US', th: 'th-TH', vi: 'vi-VN' };
+      u.lang = langMap[lang] || 'ja-JP';
+      u.rate = voiceSpeed;
+      window.speechSynthesis.speak(u);
+    }
+
+    // ========== History Drawer ==========
+    const drawer = document.getElementById('history-drawer');
+    const overlay = document.getElementById('overlay');
+
+    document.getElementById('history-toggle').addEventListener('click', () => {
+      drawer.classList.add('open');
+      overlay.classList.add('show');
+      renderHistory();
+    });
+
+    function closeDrawer() {
+      drawer.classList.remove('open');
+      overlay.classList.remove('show');
+    }
+
+    document.getElementById('history-close').addEventListener('click', closeDrawer);
+    overlay.addEventListener('click', closeDrawer);
+
+    document.getElementById('new-chat-btn').addEventListener('click', () => {
+      currentConvoId = Date.now();
+      messages = [];
+      chatMessages.innerHTML = `<div class="msg system"><span>${t.welcome}</span></div>`;
+      document.getElementById('suggestions').style.display = 'flex';
+      closeDrawer();
+    });
+
+    function saveConversation(question, answer) {
+      const entry = {
+        id: currentConvoId,
+        question: question.substring(0, 60),
+        time: new Date().toLocaleString(),
+        messages: [...messages],
+      };
+
+      const idx = conversations.findIndex(c => c.id === currentConvoId);
+      if (idx >= 0) {
+        conversations[idx] = entry;
+      } else {
+        conversations.unshift(entry);
+      }
+
+      if (conversations.length > 20) conversations = conversations.slice(0, 20);
+      localStorage.setItem('genba-chat-history', JSON.stringify(conversations));
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('history-list');
+      if (conversations.length === 0) {
+        list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-secondary);font-size:0.85em;">履歴なし</div>';
+        return;
+      }
+      list.innerHTML = conversations.map(c => `
+        <div class="history-entry" data-id="${c.id}">
+          <div class="history-q">${escapeHtml(c.question)}</div>
+          <div class="history-t">${c.time}</div>
+        </div>
+      `).join('');
+
+      list.querySelectorAll('.history-entry').forEach(entry => {
+        entry.addEventListener('click', () => {
+          const convo = conversations.find(c => c.id === parseInt(entry.dataset.id));
+          if (convo) {
+            currentConvoId = convo.id;
+            messages = convo.messages || [];
+            chatMessages.innerHTML = `<div class="msg system"><span>${t.welcome}</span></div>`;
+            messages.forEach(m => addMessage(m.content, m.role === 'user' ? 'user' : 'ai'));
+            document.getElementById('suggestions').style.display = 'none';
+          }
+          closeDrawer();
+        });
+      });
+    }
+  </script>
+</body>
+</html>

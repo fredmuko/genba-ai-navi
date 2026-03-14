@@ -1,0 +1,78 @@
+{
+  "app_name": "Genba AI Navi",
+  "welcome": "Welcome to Genba AI Navi",
+  "nav": {
+    "home": "Home",
+    "guide": "Operation Guide",
+    "troubleshoot": "Troubleshoot",
+    "safety": "Safety Manual",
+    "settings": "Settings"
+  },
+  "home": {
+    "greeting": "Hello",
+    "quick_actions": "Quick Actions",
+    "recent": "Recent History"
+  },
+  "guide": {
+    "title": "Machine Operation Guide",
+    "search_placeholder": "Search by machine name or model...",
+    "step": "Step",
+    "next": "Next",
+    "prev": "Previous",
+    "complete": "Complete",
+    "video": "Watch Video",
+    "photo": "View Photo"
+  },
+  "troubleshoot": {
+    "title": "Troubleshooting",
+    "input_placeholder": "Describe the symptom or problem...",
+    "ask_ai": "Ask AI",
+    "listening": "Listening...",
+    "thinking": "AI is generating a response...",
+    "suggestion": "Suggested Solution",
+    "try_again": "Ask another question",
+    "voice_input": "Voice Input",
+    "history": "Question History"
+  },
+  "safety": {
+    "title": "Safety Manual",
+    "search_placeholder": "Search manuals...",
+    "categories": "Categories",
+    "emergency": "Emergency Response",
+    "daily_check": "Daily Inspection",
+    "protective_equipment": "Protective Equipment",
+    "open_pdf": "Open PDF"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "voice": "Voice Settings",
+    "voice_speed": "Speech Speed",
+    "voice_enabled": "Text-to-Speech",
+    "theme": "Theme",
+    "dark_mode": "Dark Mode",
+    "font_size": "Font Size",
+    "ai_model": "AI Model",
+    "offline_mode": "Offline Mode"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "back": "Back",
+    "close": "Close",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "search": "Search",
+    "no_results": "No results found"
+  },
+  "voice": {
+    "start": "Start Voice Input",
+    "stop": "Stop Voice Input",
+    "read_aloud": "Read Aloud",
+    "not_supported": "Voice features are not supported in your browser"
+  }
+}

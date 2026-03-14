@@ -1,0 +1,78 @@
+{
+  "app_name": "Genba AI Navi",
+  "welcome": "ยินดีต้อนรับสู่ Genba AI Navi",
+  "nav": {
+    "home": "หน้าหลัก",
+    "guide": "คู่มือการใช้งาน",
+    "troubleshoot": "แก้ไขปัญหา",
+    "safety": "คู่มือความปลอดภัย",
+    "settings": "ตั้งค่า"
+  },
+  "home": {
+    "greeting": "สวัสดี",
+    "quick_actions": "การดำเนินการด่วน",
+    "recent": "ประวัติล่าสุด"
+  },
+  "guide": {
+    "title": "คู่มือการใช้เครื่องจักร",
+    "search_placeholder": "ค้นหาตามชื่อเครื่องจักรหรือรุ่น...",
+    "step": "ขั้นตอน",
+    "next": "ถัดไป",
+    "prev": "ก่อนหน้า",
+    "complete": "เสร็จสิ้น",
+    "video": "ดูวิดีโอ",
+    "photo": "ดูรูปภาพ"
+  },
+  "troubleshoot": {
+    "title": "การแก้ไขปัญหา",
+    "input_placeholder": "อธิบายอาการหรือปัญหา...",
+    "ask_ai": "ถาม AI",
+    "listening": "กำลังฟัง...",
+    "thinking": "AI กำลังสร้างคำตอบ...",
+    "suggestion": "วิธีแก้ไขที่แนะนำ",
+    "try_again": "ถามคำถามอื่น",
+    "voice_input": "ป้อนด้วยเสียง",
+    "history": "ประวัติคำถาม"
+  },
+  "safety": {
+    "title": "คู่มือความปลอดภัย",
+    "search_placeholder": "ค้นหาคู่มือ...",
+    "categories": "หมวดหมู่",
+    "emergency": "การตอบสนองฉุกเฉิน",
+    "daily_check": "การตรวจสอบประจำวัน",
+    "protective_equipment": "อุปกรณ์ป้องกัน",
+    "open_pdf": "เปิด PDF"
+  },
+  "settings": {
+    "title": "ตั้งค่า",
+    "language": "ภาษา",
+    "voice": "ตั้งค่าเสียง",
+    "voice_speed": "ความเร็วในการอ่าน",
+    "voice_enabled": "อ่านออกเสียง",
+    "theme": "ธีม",
+    "dark_mode": "โหมดมืด",
+    "font_size": "ขนาดตัวอักษร",
+    "ai_model": "โมเดล AI",
+    "offline_mode": "โหมดออฟไลน์"
+  },
+  "common": {
+    "loading": "กำลังโหลด...",
+    "error": "เกิดข้อผิดพลาด",
+    "retry": "ลองอีกครั้ง",
+    "back": "กลับ",
+    "close": "ปิด",
+    "save": "บันทึก",
+    "cancel": "ยกเลิก",
+    "confirm": "ยืนยัน",
+    "yes": "ใช่",
+    "no": "ไม่",
+    "search": "ค้นหา",
+    "no_results": "ไม่พบผลลัพธ์"
+  },
+  "voice": {
+    "start": "เริ่มป้อนเสียง",
+    "stop": "หยุดป้อนเสียง",
+    "read_aloud": "อ่านออกเสียง",
+    "not_supported": "เบราว์เซอร์ของคุณไม่รองรับฟีเจอร์เสียง"
+  }
+}

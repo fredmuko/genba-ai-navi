@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>データ管理 - 現場AIナビ</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <style>
+    .dm-page { padding: 16px; }
+
+    .dm-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+
+    .dm-tab {
+      flex: 1;
+      padding: 10px 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85em;
+      text-align: center;
+      color: var(--text);
+    }
+
+    .dm-tab.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .dm-content { display: none; }
+    .dm-content.active { display: block; }
+
+    /* Stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    .stat-number {
+      font-size: 2em;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .stat-label {
+      font-size: 0.8em;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* Table */
+    .dm-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      font-size: 0.85em;
+    }
+
+    .dm-table th,
+    .dm-table td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dm-table th {
+      background: var(--bg);
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-size: 0.85em;
+      position: sticky;
+      top: 0;
+    }
+
+    .dm-table tr:last-child td { border-bottom: none; }
+
+    .table-wrap {
+      overflow-x: auto;
+      margin-bottom: 16px;
+      border-radius: var(--radius);
+    }
+
+    /* Status badges */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.75em;
+      font-weight: 600;
+    }
+
+    .badge.running { background: #e6f4ea; color: #1e8e3e; }
+    .badge.stopped { background: #fce8e6; color: #d93025; }
+    .badge.maintenance { background: #fef7e0; color: #e37400; }
+    .badge.active { background: #e6f4ea; color: #1e8e3e; }
+    .badge.inactive { background: #fce8e6; color: #d93025; }
+
+    .badge.operator { background: #e8f0fe; color: #1a73e8; }
+    .badge.leader { background: #fef7e0; color: #e37400; }
+    .badge.maintenance-role { background: #e6f4ea; color: #1e8e3e; }
+    .badge.manager { background: #fce8e6; color: #d93025; }
+
+    /* Action buttons */
+    .action-btns {
+      display: flex;
+      gap: 4px;
+    }
+
+    .action-btn-sm {
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      cursor: pointer;
+      font-size: 0.8em;
+      color: var(--text);
+    }
+
+    .action-btn-sm.danger {
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    /* Toolbar */
+    .dm-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      gap: 8px;
+    }
+
+    .dm-toolbar input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9em;
+      background: var(--bg-card);
+      color: var(--text);
+    }
+
+    .add-btn {
+      padding: 8px 16px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85em;
+      white-space: nowrap;
+    }
+
+    /* Modal */
+    .edit-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+
+    .edit-modal.hidden { display: none; }
+
+    .edit-modal-body {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 90%;
+      max-width: 480px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .edit-modal-body h3 {
+      margin-bottom: 16px;
+      font-size: 1.05em;
+    }
+
+    .form-row {
+      margin-bottom: 12px;
+    }
+
+    .form-row label {
+      display: block;
+      font-size: 0.8em;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .form-row input,
+    .form-row select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9em;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .modal-btns {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 16px;
+    }
+
+    /* Export */
+    .export-section {
+      margin-top: 20px;
+      padding: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .export-section h4 {
+      font-size: 0.9em;
+      margin-bottom: 12px;
+    }
+
+    .export-btns {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .export-btn {
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      cursor: pointer;
+      font-size: 0.85em;
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="l-header">
+    <div class="l-header__left">
+      <button class="l-header__back" onclick="window.location.href='../index.html'">← 戻る</button>
+      <span class="l-header__title" id="page-title">データ管理</span>
+    </div>
+    <div class="l-header__actions">
+      <span style="font-size:0.8em;opacity:0.8;" id="role-display">管理者</span>
+    </div>
+  </header>
+
+  <!-- Edit Modal -->
+  <div class="edit-modal hidden" id="edit-modal">
+    <div class="edit-modal-body" id="edit-modal-body">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+
+  <div class="l-page dm-page">
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-number" id="stat-machines">0</div>
+        <div class="stat-label">機械台数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="stat-users">0</div>
+        <div class="stat-label">ユーザー数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="stat-running">0</div>
+        <div class="stat-label">稼働中</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="stat-issues">0</div>
+        <div class="stat-label">要対応</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="dm-tabs">
+      <button class="dm-tab active" data-tab="machines">🏭 機械</button>
+      <button class="dm-tab" data-tab="users">👥 ユーザー</button>
+      <button class="dm-tab" data-tab="logs">📋 ログ</button>
+    </div>
+
+    <!-- Tab: Machines -->
+    <div class="dm-content active" id="tab-machines">
+      <div class="dm-toolbar">
+        <input type="search" id="search-machines" placeholder="機械を検索...">
+        <button class="add-btn" id="add-machine-btn">＋ 追加</button>
+      </div>
+      <div class="table-wrap">
+        <table class="dm-table" id="machines-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>名前</th>
+              <th>型番</th>
+              <th>ステータス</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="machines-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab: Users -->
+    <div class="dm-content" id="tab-users">
+      <div class="dm-toolbar">
+        <input type="search" id="search-users" placeholder="ユーザーを検索...">
+        <button class="add-btn" id="add-user-btn">＋ 追加</button>
+      </div>
+      <div class="table-wrap">
+        <table class="dm-table" id="users-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>名前</th>
+              <th>役割</th>
+              <th>課</th>
+              <th>状態</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab: Logs -->
+    <div class="dm-content" id="tab-logs">
+      <div class="dm-toolbar">
+        <input type="search" id="search-logs" placeholder="ログを検索...">
+      </div>
+      <div id="logs-list" class="card-list"></div>
+    </div>
+
+    <!-- Export -->
+    <div class="export-section">
+      <h4>📦 データエクスポート</h4>
+      <div class="export-btns">
+        <button class="export-btn" id="export-machines-json">機械データ (JSON)</button>
+        <button class="export-btn" id="export-users-json">ユーザーデータ (JSON)</button>
+        <button class="export-btn" id="export-machines-csv">機械データ (CSV)</button>
+        <button class="export-btn" id="export-users-csv">ユーザーデータ (CSV)</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========== Init ==========
+    const lang = localStorage.getItem('genba-lang') || 'ja';
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('genba-theme') || 'light');
+    document.documentElement.setAttribute('data-fontsize', localStorage.getItem('genba-fontsize') || 'medium');
+
+    let machinesData = [];
+    let usersData = [];
+
+    // Check permission
+    const session = JSON.parse(localStorage.getItem('genba-session') || 'null');
+    if (session) {
+      const roleLabels = { operator: 'オペレーター', leader: 'リーダー', maintenance: '保全', manager: '管理者' };
+      document.getElementById('role-display').textContent = `${session.name} (${roleLabels[session.role] || session.role})`;
+    }
+
+    // Load data
+    async function loadData() {
+      try {
+        const [mRes, uRes] = await Promise.all([
+          fetch('../../data/machines.json'),
+          fetch('../../data/users.json'),
+        ]);
+        const mData = await mRes.json();
+        const uData = await uRes.json();
+        machinesData = mData.machines;
+        usersData = uData.users;
+        renderAll();
+      } catch (e) {
+        console.error('Data load error:', e);
+        // Fallback: empty
+        renderAll();
+      }
+    }
+
+    loadData();
+
+    // ========== Tabs ==========
+    document.querySelectorAll('.dm-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.dm-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.dm-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+      });
+    });
+
+    // ========== Render ==========
+    function renderAll() {
+      renderStats();
+      renderMachines();
+      renderUsers();
+      renderLogs();
+    }
+
+    function renderStats() {
+      document.getElementById('stat-machines').textContent = machinesData.length;
+      document.getElementById('stat-users').textContent = usersData.length;
+      document.getElementById('stat-running').textContent = machinesData.filter(m => m.status === 'running').length;
+      document.getElementById('stat-issues').textContent = machinesData.filter(m => m.status === 'maintenance' || m.status === 'stopped').length;
+    }
+
+    function renderMachines(filter = '') {
+      const tbody = document.getElementById('machines-tbody');
+      const filtered = machinesData.filter(m => {
+        const text = `${m.name[lang] || m.name.en} ${m.specs.model}`.toLowerCase();
+        return text.includes(filter.toLowerCase());
+      });
+
+      tbody.innerHTML = filtered.map(m => `
+        <tr>
+          <td>${m.icon}</td>
+          <td>${m.name[lang] || m.name.en}</td>
+          <td>${m.specs.model}</td>
+          <td><span class="badge ${m.status}">${statusLabel(m.status)}</span></td>
+          <td>
+            <div class="action-btns">
+              <button class="action-btn-sm" onclick="editMachineStatus('${m.id}')">📝</button>
+              <button class="action-btn-sm" onclick="viewMachine('${m.id}')">👁</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderUsers(filter = '') {
+      const tbody = document.getElementById('users-tbody');
+      const filtered = usersData.filter(u => {
+        const text = `${u.id} ${u.name} ${u.department}`.toLowerCase();
+        return text.includes(filter.toLowerCase());
+      });
+
+      const roleClasses = { operator: 'operator', leader: 'leader', maintenance: 'maintenance-role', manager: 'manager' };
+      const roleLabels = { operator: 'オペレーター', leader: 'リーダー', maintenance: '保全', manager: '管理者' };
+
+      tbody.innerHTML = filtered.map(u => `
+        <tr>
+          <td>${u.id}</td>
+          <td>${u.name}</td>
+          <td><span class="badge ${roleClasses[u.role] || ''}">${roleLabels[u.role] || u.role}</span></td>
+          <td>${u.department}</td>
+          <td><span class="badge ${u.active ? 'active' : 'inactive'}">${u.active ? '有効' : '無効'}</span></td>
+          <td>
+            <div class="action-btns">
+              <button class="action-btn-sm" onclick="editUser('${u.id}')">📝</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderLogs() {
+      const list = document.getElementById('logs-list');
+      const allLogs = [];
+
+      machinesData.forEach(m => {
+        (m.history || []).forEach(h => {
+          allLogs.push({
+            date: h.date,
+            machine: m.name[lang] || m.name.en,
+            icon: m.icon,
+            type: h.type,
+            text: h.text[lang] || h.text.en || h.text.ja,
+          });
+        });
+      });
+
+      allLogs.sort((a, b) => b.date.localeCompare(a.date));
+
+      const typeIcons = { maintenance: '🔧', repair: '🛠', adjustment: '⚙️', inspection: '🔍' };
+      const typeLabels = { maintenance: 'メンテナンス', repair: '修理', adjustment: '調整', inspection: '点検' };
+
+      list.innerHTML = allLogs.map(l => `
+        <div class="card-item">
+          <span class="card-icon">${l.icon}</span>
+          <div class="card-info">
+            <div class="card-title">${l.machine} - ${typeIcons[l.type] || '📋'} ${typeLabels[l.type] || l.type}</div>
+            <div class="card-desc">${l.text}</div>
+            <div class="card-desc" style="margin-top:2px;">${l.date}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function statusLabel(s) {
+      const labels = { running: '稼働中', stopped: '停止', maintenance: 'メンテナンス中' };
+      return labels[s] || s;
+    }
+
+    // ========== Search ==========
+    document.getElementById('search-machines').addEventListener('input', (e) => renderMachines(e.target.value));
+    document.getElementById('search-users').addEventListener('input', (e) => renderUsers(e.target.value));
+    document.getElementById('search-logs').addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase();
+      document.querySelectorAll('#logs-list .card-item').forEach(item => {
+        item.style.display = item.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    });
+
+    // ========== Edit Actions ==========
+    const modal = document.getElementById('edit-modal');
+    const modalBody = document.getElementById('edit-modal-body');
+
+    function editMachineStatus(id) {
+      const m = machinesData.find(x => x.id === id);
+      if (!m) return;
+
+      modalBody.innerHTML = `
+        <h3>${m.icon} ${m.name[lang] || m.name.en}</h3>
+        <div class="form-row">
+          <label>ステータス</label>
+          <select id="edit-status">
+            <option value="running" ${m.status === 'running' ? 'selected' : ''}>稼働中</option>
+            <option value="stopped" ${m.status === 'stopped' ? 'selected' : ''}>停止</option>
+            <option value="maintenance" ${m.status === 'maintenance' ? 'selected' : ''}>メンテナンス中</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>メモ（履歴に追加）</label>
+          <input type="text" id="edit-note" placeholder="変更理由...">
+        </div>
+        <div class="modal-btns">
+          <button class="btn-secondary" onclick="closeModal()">キャンセル</button>
+          <button class="btn-primary" onclick="saveMachineStatus('${id}')">保存</button>
+        </div>
+      `;
+      modal.classList.remove('hidden');
+    }
+
+    function saveMachineStatus(id) {
+      const m = machinesData.find(x => x.id === id);
+      if (!m) return;
+
+      const newStatus = document.getElementById('edit-status').value;
+      const note = document.getElementById('edit-note').value;
+
+      m.status = newStatus;
+      if (note) {
+        m.history.unshift({
+          date: new Date().toISOString().split('T')[0],
+          type: 'adjustment',
+          text: { ja: note, en: note },
+        });
+      }
+
+      renderAll();
+      closeModal();
+    }
+
+    function viewMachine(id) {
+      window.location.href = `detail.html?machine=${id}`;
+    }
+
+    function editUser(id) {
+      const u = usersData.find(x => x.id === id);
+      if (!u) return;
+
+      modalBody.innerHTML = `
+        <h3>👤 ${u.name}</h3>
+        <div class="form-row">
+          <label>名前</label>
+          <input type="text" id="edit-name" value="${u.name}">
+        </div>
+        <div class="form-row">
+          <label>役割</label>
+          <select id="edit-role">
+            <option value="operator" ${u.role === 'operator' ? 'selected' : ''}>オペレーター</option>
+            <option value="leader" ${u.role === 'leader' ? 'selected' : ''}>ラインリーダー</option>
+            <option value="maintenance" ${u.role === 'maintenance' ? 'selected' : ''}>保全担当</option>
+            <option value="manager" ${u.role === 'manager' ? 'selected' : ''}>管理者</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>部署</label>
+          <input type="text" id="edit-dept" value="${u.department}">
+        </div>
+        <div class="form-row">
+          <label>シフト</label>
+          <select id="edit-shift">
+            <option value="A" ${u.shift === 'A' ? 'selected' : ''}>A シフト</option>
+            <option value="B" ${u.shift === 'B' ? 'selected' : ''}>B シフト</option>
+            <option value="all" ${u.shift === 'all' ? 'selected' : ''}>全シフト</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>状態</label>
+          <select id="edit-active">
+            <option value="true" ${u.active ? 'selected' : ''}>有効</option>
+            <option value="false" ${!u.active ? 'selected' : ''}>無効</option>
+          </select>
+        </div>
+        <div class="modal-btns">
+          <button class="btn-secondary" onclick="closeModal()">キャンセル</button>
+          <button class="btn-primary" onclick="saveUser('${u.id}')">保存</button>
+        </div>
+      `;
+      modal.classList.remove('hidden');
+    }
+
+    function saveUser(id) {
+      const u = usersData.find(x => x.id === id);
+      if (!u) return;
+
+      u.name = document.getElementById('edit-name').value;
+      u.role = document.getElementById('edit-role').value;
+      u.department = document.getElementById('edit-dept').value;
+      u.shift = document.getElementById('edit-shift').value;
+      u.active = document.getElementById('edit-active').value === 'true';
+
+      renderAll();
+      closeModal();
+    }
+
+    function closeModal() {
+      modal.classList.add('hidden');
+    }
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    // ========== Add ==========
+    document.getElementById('add-machine-btn').addEventListener('click', () => {
+      modalBody.innerHTML = `
+        <h3>🏭 機械を追加</h3>
+        <div class="form-row"><label>名前</label><input type="text" id="new-m-name" placeholder="例: CNC旋盤 CK6150"></div>
+        <div class="form-row"><label>型番</label><input type="text" id="new-m-model" placeholder="例: CK6150"></div>
+        <div class="form-row"><label>メーカー</label><input type="text" id="new-m-maker" placeholder="例: FANUC"></div>
+        <div class="form-row">
+          <label>ステータス</label>
+          <select id="new-m-status">
+            <option value="running">稼働中</option>
+            <option value="stopped">停止</option>
+            <option value="maintenance">メンテナンス中</option>
+          </select>
+        </div>
+        <div class="modal-btns">
+          <button class="btn-secondary" onclick="closeModal()">キャンセル</button>
+          <button class="btn-primary" onclick="addMachine()">追加</button>
+        </div>
+      `;
+      modal.classList.remove('hidden');
+    });
+
+    function addMachine() {
+      const name = document.getElementById('new-m-name').value.trim();
+      const model = document.getElementById('new-m-model').value.trim();
+      if (!name) return;
+
+      machinesData.push({
+        id: 'machine-' + Date.now(),
+        icon: '🏭',
+        status: document.getElementById('new-m-status').value,
+        name: { ja: name, en: name, th: name, vi: name },
+        desc: { ja: model, en: model, th: model, vi: model },
+        specs: {
+          model: model,
+          manufacturer: document.getElementById('new-m-maker').value.trim(),
+          installed: new Date().toISOString().substring(0, 7),
+        },
+        steps: { ja: [], en: [], th: [], vi: [] },
+        checklist: { ja: [], en: [], th: [], vi: [] },
+        history: [],
+      });
+
+      renderAll();
+      closeModal();
+    }
+
+    document.getElementById('add-user-btn').addEventListener('click', () => {
+      modalBody.innerHTML = `
+        <h3>👤 ユーザーを追加</h3>
+        <div class="form-row"><label>社員番号</label><input type="text" id="new-u-id" placeholder="例: EMP-004"></div>
+        <div class="form-row"><label>名前</label><input type="text" id="new-u-name" placeholder=""></div>
+        <div class="form-row"><label>PIN (4桁)</label><input type="text" id="new-u-pin" maxlength="4" placeholder="1234"></div>
+        <div class="form-row">
+          <label>役割</label>
+          <select id="new-u-role">
+            <option value="operator">オペレーター</option>
+            <option value="leader">ラインリーダー</option>
+            <option value="maintenance">保全担当</option>
+            <option value="manager">管理者</option>
+          </select>
+        </div>
+        <div class="form-row"><label>部署</label><input type="text" id="new-u-dept" placeholder="例: 製造1課"></div>
+        <div class="form-row">
+          <label>言語</label>
+          <select id="new-u-lang">
+            <option value="ja">日本語</option>
+            <option value="en">English</option>
+            <option value="th">ภาษาไทย</option>
+            <option value="vi">Tiếng Việt</option>
+          </select>
+        </div>
+        <div class="modal-btns">
+          <button class="btn-secondary" onclick="closeModal()">キャンセル</button>
+          <button class="btn-primary" onclick="addUser()">追加</button>
+        </div>
+      `;
+      modal.classList.remove('hidden');
+    });
+
+    function addUser() {
+      const id = document.getElementById('new-u-id').value.trim();
+      const name = document.getElementById('new-u-name').value.trim();
+      const pin = document.getElementById('new-u-pin').value.trim();
+      if (!id || !name || !pin) return;
+
+      usersData.push({
+        id: id,
+        pin: pin,
+        name: name,
+        name_en: name,
+        role: document.getElementById('new-u-role').value,
+        lang: document.getElementById('new-u-lang').value,
+        department: document.getElementById('new-u-dept').value.trim(),
+        shift: 'A',
+        certified_machines: [],
+        joined: new Date().toISOString().split('T')[0],
+        active: true,
+      });
+
+      renderAll();
+      closeModal();
+    }
+
+    // ========== Export ==========
+    function downloadFile(data, filename, type) {
+      const blob = new Blob([data], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('export-machines-json').addEventListener('click', () => {
+      downloadFile(JSON.stringify({ machines: machinesData }, null, 2), 'machines.json', 'application/json');
+    });
+
+    document.getElementById('export-users-json').addEventListener('click', () => {
+      downloadFile(JSON.stringify({ users: usersData }, null, 2), 'users.json', 'application/json');
+    });
+
+    document.getElementById('export-machines-csv').addEventListener('click', () => {
+      let csv = 'ID,Name,Model,Manufacturer,Status,Installed\n';
+      machinesData.forEach(m => {
+        csv += `${m.id},"${m.name.ja}",${m.specs.model},${m.specs.manufacturer || ''},${m.status},${m.specs.installed || ''}\n`;
+      });
+      downloadFile(csv, 'machines.csv', 'text/csv');
+    });
+
+    document.getElementById('export-users-csv').addEventListener('click', () => {
+      let csv = 'ID,Name,Role,Department,Shift,Language,Active,Joined\n';
+      usersData.forEach(u => {
+        csv += `${u.id},"${u.name}",${u.role},${u.department},${u.shift},${u.lang},${u.active},${u.joined}\n`;
+      });
+      downloadFile(csv, 'users.csv', 'text/csv');
+    });
+  </script>
+</body>
+</html>

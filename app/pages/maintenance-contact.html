@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>保全連絡 - 現場AIナビ</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <style>
+    .mc-page { padding: 16px; }
+
+    /* Urgency Selector */
+    .urgency-selector {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .urgency-btn {
+      flex: 1;
+      padding: 14px 8px;
+      border-radius: var(--radius);
+      border: 2px solid var(--border);
+      background: var(--bg-card);
+      cursor: pointer;
+      text-align: center;
+      font-size: 0.8em;
+      color: var(--text);
+      transition: all 0.2s;
+    }
+
+    .urgency-btn .urgency-icon { font-size: 1.6em; display: block; margin-bottom: 4px; }
+
+    .urgency-btn.selected.emergency { border-color: #d93025; background: #fce8e6; }
+    .urgency-btn.selected.urgent { border-color: #f9ab00; background: #fef7e0; }
+    .urgency-btn.selected.normal { border-color: #1a73e8; background: #e8f0fe; }
+    .urgency-btn.selected.scheduled { border-color: #1e8e3e; background: #e6f4ea; }
+
+    /* Form */
+    .mc-form {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85em;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.95em;
+      background: var(--bg-card);
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    .form-group textarea { resize: vertical; min-height: 80px; }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
+    }
+
+    /* Photo upload */
+    .photo-upload {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .photo-add {
+      width: 80px;
+      height: 80px;
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.5em;
+      color: var(--text-secondary);
+      background: var(--bg);
+    }
+
+    .photo-preview {
+      width: 80px;
+      height: 80px;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid var(--border);
+    }
+
+    .photo-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .photo-remove {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--danger);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-size: 0.6em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Voice memo */
+    .voice-memo-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .voice-record-btn {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      border: 2px solid var(--danger);
+      background: var(--bg-card);
+      cursor: pointer;
+      font-size: 1.3em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .voice-record-btn.recording {
+      background: var(--danger);
+      animation: pulse 1s infinite;
+    }
+
+    .voice-memo-status {
+      font-size: 0.85em;
+      color: var(--text-secondary);
+    }
+
+    .voice-playback {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--bg);
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+
+    .voice-playback.show { display: flex; }
+
+    .voice-play-btn {
+      background: none;
+      border: none;
+      font-size: 1.2em;
+      cursor: pointer;
+    }
+
+    /* Submit */
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.05em;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    .submit-btn:active { background: var(--primary-dark); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .submit-btn.emergency-submit {
+      background: var(--danger);
+    }
+
+    /* Contact List */
+    .contact-section {
+      margin-top: 24px;
+    }
+
+    .contact-section h3 {
+      font-size: 0.95em;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .contact-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .contact-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2em;
+      flex-shrink: 0;
+    }
+
+    .contact-info { flex: 1; }
+    .contact-name { font-weight: 600; font-size: 0.95em; }
+    .contact-role { font-size: 0.8em; color: var(--text-secondary); }
+    .contact-shift { font-size: 0.75em; color: var(--text-secondary); }
+
+    .contact-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .contact-action {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      cursor: pointer;
+      font-size: 1em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .contact-action.call { border-color: var(--success); }
+
+    /* Request History */
+    .history-section { margin-top: 24px; }
+
+    .history-section h3 {
+      font-size: 0.95em;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .request-card {
+      padding: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .request-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .request-machine { font-weight: 600; font-size: 0.9em; }
+
+    .request-badge {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.7em;
+      font-weight: 600;
+    }
+
+    .request-badge.pending { background: #fef7e0; color: #e37400; }
+    .request-badge.in-progress { background: #e8f0fe; color: #1a73e8; }
+    .request-badge.resolved { background: #e6f4ea; color: #1e8e3e; }
+
+    .request-desc { font-size: 0.85em; color: var(--text-secondary); margin-bottom: 4px; }
+    .request-time { font-size: 0.75em; color: var(--text-secondary); }
+
+    /* Success overlay */
+    .success-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+
+    .success-overlay.hidden { display: none; }
+
+    .success-card {
+      background: var(--bg-card);
+      border-radius: 20px;
+      padding: 32px 24px;
+      text-align: center;
+      width: 85%;
+      max-width: 360px;
+    }
+
+    .success-icon { font-size: 3em; margin-bottom: 12px; }
+    .success-title { font-size: 1.1em; font-weight: 600; margin-bottom: 8px; }
+    .success-text { font-size: 0.85em; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="l-header">
+    <div class="l-header__left">
+      <button class="l-header__back" onclick="window.location.href='../index.html'">← 戻る</button>
+      <span class="l-header__title" id="page-title">保全連絡</span>
+    </div>
+    <span style="font-size:0.8em;opacity:0.8;" id="user-display"></span>
+  </header>
+
+  <!-- Success Overlay -->
+  <div class="success-overlay hidden" id="success-overlay">
+    <div class="success-card">
+      <div class="success-icon">✅</div>
+      <div class="success-title" id="success-title">送信完了</div>
+      <div class="success-text" id="success-text">保全担当に通知しました。対応をお待ちください。</div>
+      <button class="btn-primary" onclick="resetForm()" style="width:100%;">OK</button>
+    </div>
+  </div>
+
+  <div class="mc-page l-page">
+    <!-- Urgency -->
+    <div class="urgency-selector">
+      <button class="urgency-btn emergency" data-urgency="emergency" onclick="selectUrgency(this)">
+        <span class="urgency-icon">🚨</span>
+        <span id="u-emergency">緊急</span>
+      </button>
+      <button class="urgency-btn urgent" data-urgency="urgent" onclick="selectUrgency(this)">
+        <span class="urgency-icon">⚠️</span>
+        <span id="u-urgent">急ぎ</span>
+      </button>
+      <button class="urgency-btn normal selected" data-urgency="normal" onclick="selectUrgency(this)">
+        <span class="urgency-icon">📋</span>
+        <span id="u-normal">通常</span>
+      </button>
+      <button class="urgency-btn scheduled" data-urgency="scheduled" onclick="selectUrgency(this)">
+        <span class="urgency-icon">📅</span>
+        <span id="u-scheduled">予定</span>
+      </button>
+    </div>
+
+    <!-- Form -->
+    <form class="mc-form" id="mc-form" onsubmit="submitRequest(event)">
+      <div class="form-group">
+        <label id="label-machine">対象機械</label>
+        <select id="input-machine" required>
+          <option value="">-- 選択してください --</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label id="label-category">カテゴリ</label>
+        <select id="input-category" required>
+          <option value="">-- 選択してください --</option>
+          <option value="breakdown">故障・停止</option>
+          <option value="abnormal">異音・異臭・異常振動</option>
+          <option value="quality">品質不良</option>
+          <option value="leak">油漏れ・水漏れ</option>
+          <option value="electrical">電気系統</option>
+          <option value="safety">安全装置</option>
+          <option value="periodic">定期メンテナンス</option>
+          <option value="other">その他</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label id="label-desc">状況の説明</label>
+        <textarea id="input-desc" rows="3" placeholder="何が起きているか、いつから、どのような状態か..." required></textarea>
+      </div>
+
+      <div class="form-group">
+        <label id="label-photo">写真を添付</label>
+        <div class="photo-upload" id="photo-upload">
+          <div class="photo-add" id="photo-add-btn">📷</div>
+        </div>
+        <input type="file" id="photo-input" accept="image/*" multiple style="display:none;">
+      </div>
+
+      <div class="form-group">
+        <label id="label-voice">音声メモ</label>
+        <div class="voice-memo-area">
+          <button type="button" class="voice-record-btn" id="voice-record-btn">🎙</button>
+          <span class="voice-memo-status" id="voice-status">タップして録音</span>
+        </div>
+        <div class="voice-playback" id="voice-playback">
+          <button type="button" class="voice-play-btn" id="voice-play-btn">▶️</button>
+          <span id="voice-duration">0:00</span>
+          <button type="button" class="voice-play-btn" id="voice-delete-btn">🗑</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label id="label-assign">通知先</label>
+        <select id="input-assign">
+          <option value="auto" id="opt-auto">自動（当番保全担当）</option>
+          <option value="EMP-020">山本修（保全課）</option>
+          <option value="EMP-010">佐藤健一（リーダー）</option>
+          <option value="EMP-100">管理者</option>
+        </select>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submit-btn">📤 保全依頼を送信</button>
+    </form>
+
+    <!-- Contacts -->
+    <div class="contact-section">
+      <h3 id="contact-title">保全担当連絡先</h3>
+
+      <div class="contact-card">
+        <div class="contact-avatar">🔧</div>
+        <div class="contact-info">
+          <div class="contact-name">山本修</div>
+          <div class="contact-role">保全課 / EMP-020</div>
+          <div class="contact-shift">A シフト担当</div>
+        </div>
+        <div class="contact-actions">
+          <button class="contact-action call" title="電話">📞</button>
+          <button class="contact-action" title="メッセージ">💬</button>
+        </div>
+      </div>
+
+      <div class="contact-card">
+        <div class="contact-avatar">👷</div>
+        <div class="contact-info">
+          <div class="contact-name">佐藤健一</div>
+          <div class="contact-role">ラインリーダー / EMP-010</div>
+          <div class="contact-shift">A シフト担当</div>
+        </div>
+        <div class="contact-actions">
+          <button class="contact-action call" title="電話">📞</button>
+          <button class="contact-action" title="メッセージ">💬</button>
+        </div>
+      </div>
+
+      <div class="contact-card">
+        <div class="contact-avatar">👔</div>
+        <div class="contact-info">
+          <div class="contact-name">管理者</div>
+          <div class="contact-role">製造部 / EMP-100</div>
+          <div class="contact-shift">全シフト</div>
+        </div>
+        <div class="contact-actions">
+          <button class="contact-action call" title="電話">📞</button>
+          <button class="contact-action" title="メッセージ">💬</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Request History -->
+    <div class="history-section">
+      <h3 id="history-title">依頼履歴</h3>
+      <div id="request-history"></div>
+    </div>
+  </div>
+
+  <script>
+    // ========== Init ==========
+    const lang = localStorage.getItem('genba-lang') || 'ja';
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('genba-theme') || 'light');
+    document.documentElement.setAttribute('data-fontsize', localStorage.getItem('genba-fontsize') || 'medium');
+
+    const session = JSON.parse(localStorage.getItem('genba-session') || 'null');
+    if (session) {
+      document.getElementById('user-display').textContent = session.name;
+    }
+
+    let selectedUrgency = 'normal';
+    let photos = [];
+    let audioBlob = null;
+    let mediaRecorder = null;
+    let requests = JSON.parse(localStorage.getItem('genba-requests') || '[]');
+
+    // ========== i18n ==========
+    const texts = {
+      ja: {
+        title: '保全連絡', emergency: '緊急', urgent: '急ぎ', normal: '通常', scheduled: '予定',
+        machine: '対象機械', category: 'カテゴリ', desc: '状況の説明',
+        descPlaceholder: '何が起きているか、いつから、どのような状態か...',
+        photo: '写真を添付', voice: '音声メモ', voiceTap: 'タップして録音', voiceRecording: '録音中...',
+        assign: '通知先', autoAssign: '自動（当番保全担当）',
+        submit: '📤 保全依頼を送信', submitEmergency: '🚨 緊急通報を送信',
+        contacts: '保全担当連絡先', history: '依頼履歴',
+        successTitle: '送信完了', successText: '保全担当に通知しました。対応をお待ちください。',
+        successEmergency: '緊急通報を送信しました。保全担当が直ちに対応します。',
+        catBreakdown: '故障・停止', catAbnormal: '異音・異臭・異常振動', catQuality: '品質不良',
+        catLeak: '油漏れ・水漏れ', catElectrical: '電気系統', catSafety: '安全装置',
+        catPeriodic: '定期メンテナンス', catOther: 'その他',
+        pending: '対応待ち', inProgress: '対応中', resolved: '完了',
+      },
+      en: {
+        title: 'Maintenance Contact', emergency: 'Emergency', urgent: 'Urgent', normal: 'Normal', scheduled: 'Scheduled',
+        machine: 'Target Machine', category: 'Category', desc: 'Description',
+        descPlaceholder: 'What happened, when, and current condition...',
+        photo: 'Attach Photos', voice: 'Voice Memo', voiceTap: 'Tap to record', voiceRecording: 'Recording...',
+        assign: 'Notify', autoAssign: 'Auto (on-duty maintenance)',
+        submit: '📤 Submit Request', submitEmergency: '🚨 Send Emergency Alert',
+        contacts: 'Maintenance Contacts', history: 'Request History',
+        successTitle: 'Sent', successText: 'Maintenance team has been notified. Please wait for response.',
+        successEmergency: 'Emergency alert sent. Maintenance team will respond immediately.',
+        catBreakdown: 'Breakdown', catAbnormal: 'Abnormal sound/smell/vibration', catQuality: 'Quality issue',
+        catLeak: 'Oil/water leak', catElectrical: 'Electrical', catSafety: 'Safety device',
+        catPeriodic: 'Periodic maintenance', catOther: 'Other',
+        pending: 'Pending', inProgress: 'In Progress', resolved: 'Resolved',
+      },
+      th: {
+        title: 'แจ้งซ่อม', emergency: 'ฉุกเฉิน', urgent: 'เร่งด่วน', normal: 'ปกติ', scheduled: 'ตามกำหนด',
+        machine: 'เครื่องจักร', category: 'ประเภท', desc: 'รายละเอียด',
+        descPlaceholder: 'เกิดอะไรขึ้น เมื่อไหร่ สภาพปัจจุบัน...',
+        photo: 'แนบรูปภาพ', voice: 'บันทึกเสียง', voiceTap: 'แตะเพื่อบันทึก', voiceRecording: 'กำลังบันทึก...',
+        assign: 'แจ้ง', autoAssign: 'อัตโนมัติ (ช่างเวร)',
+        submit: '📤 ส่งคำขอ', submitEmergency: '🚨 แจ้งเหตุฉุกเฉิน',
+        contacts: 'ติดต่อช่างซ่อม', history: 'ประวัติการแจ้ง',
+        successTitle: 'ส่งแล้ว', successText: 'แจ้งช่างซ่อมแล้ว กรุณารอการตอบกลับ',
+        successEmergency: 'แจ้งเหตุฉุกเฉินแล้ว ช่างจะมาทันที',
+        catBreakdown: 'เครื่องเสีย', catAbnormal: 'เสียง/กลิ่นผิดปกติ', catQuality: 'คุณภาพ',
+        catLeak: 'น้ำมัน/น้ำรั่ว', catElectrical: 'ไฟฟ้า', catSafety: 'อุปกรณ์นิรภัย',
+        catPeriodic: 'บำรุงรักษาตามกำหนด', catOther: 'อื่นๆ',
+        pending: 'รอ', inProgress: 'กำลังดำเนินการ', resolved: 'เสร็จสิ้น',
+      },
+      vi: {
+        title: 'Liên hệ bảo trì', emergency: 'Khẩn cấp', urgent: 'Gấp', normal: 'Thường', scheduled: 'Theo lịch',
+        machine: 'Máy', category: 'Loại', desc: 'Mô tả',
+        descPlaceholder: 'Chuyện gì xảy ra, khi nào, tình trạng hiện tại...',
+        photo: 'Đính kèm ảnh', voice: 'Ghi âm', voiceTap: 'Nhấn để ghi', voiceRecording: 'Đang ghi...',
+        assign: 'Thông báo', autoAssign: 'Tự động (kỹ thuật trực)',
+        submit: '📤 Gửi yêu cầu', submitEmergency: '🚨 Gửi cảnh báo khẩn',
+        contacts: 'Liên hệ bảo trì', history: 'Lịch sử yêu cầu',
+        successTitle: 'Đã gửi', successText: 'Đã thông báo bộ phận bảo trì. Vui lòng chờ phản hồi.',
+        successEmergency: 'Đã gửi cảnh báo khẩn. Kỹ thuật sẽ đến ngay.',
+        catBreakdown: 'Hỏng máy', catAbnormal: 'Tiếng/mùi bất thường', catQuality: 'Lỗi chất lượng',
+        catLeak: 'Rò rỉ dầu/nước', catElectrical: 'Điện', catSafety: 'Thiết bị an toàn',
+        catPeriodic: 'Bảo trì định kỳ', catOther: 'Khác',
+        pending: 'Chờ', inProgress: 'Đang xử lý', resolved: 'Hoàn thành',
+      },
+    };
+
+    const t = texts[lang] || texts.ja;
+
+    // Apply i18n
+    document.getElementById('page-title').textContent = t.title;
+    document.getElementById('u-emergency').textContent = t.emergency;
+    document.getElementById('u-urgent').textContent = t.urgent;
+    document.getElementById('u-normal').textContent = t.normal;
+    document.getElementById('u-scheduled').textContent = t.scheduled;
+    document.getElementById('label-machine').textContent = t.machine;
+    document.getElementById('label-category').textContent = t.category;
+    document.getElementById('label-desc').textContent = t.desc;
+    document.getElementById('input-desc').placeholder = t.descPlaceholder;
+    document.getElementById('label-photo').textContent = t.photo;
+    document.getElementById('label-voice').textContent = t.voice;
+    document.getElementById('voice-status').textContent = t.voiceTap;
+    document.getElementById('label-assign').textContent = t.assign;
+    document.getElementById('opt-auto').textContent = t.autoAssign;
+    document.getElementById('submit-btn').textContent = t.submit;
+    document.getElementById('contact-title').textContent = t.contacts;
+    document.getElementById('history-title').textContent = t.history;
+    document.getElementById('success-title').textContent = t.successTitle;
+    document.getElementById('success-text').textContent = t.successText;
+
+    // Category options i18n
+    const catMap = {
+      breakdown: t.catBreakdown, abnormal: t.catAbnormal, quality: t.catQuality,
+      leak: t.catLeak, electrical: t.catElectrical, safety: t.catSafety,
+      periodic: t.catPeriodic, other: t.catOther,
+    };
+    document.querySelectorAll('#input-category option').forEach(opt => {
+      if (opt.value && catMap[opt.value]) opt.textContent = catMap[opt.value];
+    });
+
+    // ========== Load machines ==========
+    fetch('../../data/machines.json')
+      .then(r => r.json())
+      .then(data => {
+        const select = document.getElementById('input-machine');
+        data.machines.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = `${m.icon} ${m.name[lang] || m.name.en}`;
+          select.appendChild(opt);
+        });
+      })
+      .catch(() => {});
+
+    // ========== Urgency ==========
+    function selectUrgency(btn) {
+      document.querySelectorAll('.urgency-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedUrgency = btn.dataset.urgency;
+
+      const submitBtn = document.getElementById('submit-btn');
+      if (selectedUrgency === 'emergency') {
+        submitBtn.textContent = t.submitEmergency;
+        submitBtn.classList.add('emergency-submit');
+      } else {
+        submitBtn.textContent = t.submit;
+        submitBtn.classList.remove('emergency-submit');
+      }
+    }
+
+    // ========== Photos ==========
+    const photoInput = document.getElementById('photo-input');
+    document.getElementById('photo-add-btn').addEventListener('click', () => photoInput.click());
+
+    photoInput.addEventListener('change', (e) => {
+      Array.from(e.target.files).forEach(file => {
+        if (photos.length >= 4) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          photos.push(ev.target.result);
+          renderPhotos();
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    function renderPhotos() {
+      const container = document.getElementById('photo-upload');
+      container.innerHTML = photos.map((p, i) => `
+        <div class="photo-preview">
+          <img src="${p}" alt="photo ${i + 1}">
+          <button class="photo-remove" onclick="removePhoto(${i})">✕</button>
+        </div>
+      `).join('');
+
+      if (photos.length < 4) {
+        container.innerHTML += '<div class="photo-add" onclick="document.getElementById(\'photo-input\').click()">📷</div>';
+      }
+    }
+
+    function removePhoto(i) {
+      photos.splice(i, 1);
+      renderPhotos();
+    }
+
+    // ========== Voice Memo ==========
+    const voiceBtn = document.getElementById('voice-record-btn');
+    const voiceStatus = document.getElementById('voice-status');
+    const voicePlayback = document.getElementById('voice-playback');
+    let audioChunks = [];
+
+    voiceBtn.addEventListener('click', async () => {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        voiceBtn.classList.remove('recording');
+        voiceStatus.textContent = t.voiceTap;
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+        mediaRecorder.onstop = () => {
+          audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          voicePlayback.classList.add('show');
+          stream.getTracks().forEach(t => t.stop());
+        };
+
+        mediaRecorder.start();
+        voiceBtn.classList.add('recording');
+        voiceStatus.textContent = t.voiceRecording;
+      } catch (e) {
+        voiceStatus.textContent = 'Mic error';
+      }
+    });
+
+    document.getElementById('voice-play-btn').addEventListener('click', () => {
+      if (audioBlob) {
+        const url = URL.createObjectURL(audioBlob);
+        new Audio(url).play();
+      }
+    });
+
+    document.getElementById('voice-delete-btn').addEventListener('click', () => {
+      audioBlob = null;
+      voicePlayback.classList.remove('show');
+    });
+
+    // ========== Submit ==========
+    function submitRequest(e) {
+      e.preventDefault();
+
+      const machine = document.getElementById('input-machine');
+      const category = document.getElementById('input-category').value;
+      const desc = document.getElementById('input-desc').value;
+      const assign = document.getElementById('input-assign').value;
+
+      const request = {
+        id: Date.now(),
+        urgency: selectedUrgency,
+        machine: machine.options[machine.selectedIndex].textContent,
+        machineId: machine.value,
+        category: catMap[category] || category,
+        description: desc,
+        photos: photos.length,
+        hasVoice: !!audioBlob,
+        assignee: assign,
+        reporter: session ? session.name : 'Unknown',
+        reporterId: session ? session.id : '',
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      };
+
+      requests.unshift(request);
+      if (requests.length > 50) requests = requests.slice(0, 50);
+      localStorage.setItem('genba-requests', JSON.stringify(requests));
+
+      // Show success
+      const overlay = document.getElementById('success-overlay');
+      document.getElementById('success-text').textContent =
+        selectedUrgency === 'emergency' ? t.successEmergency : t.successText;
+      overlay.classList.remove('hidden');
+
+      renderHistory();
+    }
+
+    function resetForm() {
+      document.getElementById('success-overlay').classList.add('hidden');
+      document.getElementById('mc-form').reset();
+      photos = [];
+      audioBlob = null;
+      renderPhotos();
+      voicePlayback.classList.remove('show');
+      selectUrgency(document.querySelector('.urgency-btn.normal'));
+    }
+
+    // ========== History ==========
+    function renderHistory() {
+      const container = document.getElementById('request-history');
+      const statusLabels = { pending: t.pending, 'in-progress': t.inProgress, resolved: t.resolved };
+      const statusClass = { pending: 'pending', 'in-progress': 'in-progress', resolved: 'resolved' };
+      const urgencyIcons = { emergency: '🚨', urgent: '⚠️', normal: '📋', scheduled: '📅' };
+
+      container.innerHTML = requests.slice(0, 10).map(r => {
+        const date = new Date(r.createdAt);
+        const timeStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return `
+          <div class="request-card">
+            <div class="request-header">
+              <span class="request-machine">${urgencyIcons[r.urgency] || ''} ${r.machine}</span>
+              <span class="request-badge ${statusClass[r.status] || 'pending'}">${statusLabels[r.status] || r.status}</span>
+            </div>
+            <div class="request-desc">${r.category} - ${r.description.substring(0, 60)}</div>
+            <div class="request-time">${timeStr} / ${r.reporter}</div>
+          </div>
+        `;
+      }).join('') || `<div style="text-align:center;color:var(--text-secondary);padding:16px;font-size:0.85em;">履歴なし</div>`;
+    }
+
+    renderHistory();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>拠点管理 - 現場AIナビ</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <style>
+    .ms-page { padding: 16px; }
+
+    /* Site selector */
+    .site-selector {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .site-chip {
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--bg-card);
+      cursor: pointer;
+      font-size: 0.82em;
+      white-space: nowrap;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .site-chip.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .site-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .site-dot.online { background: var(--success); }
+    .site-dot.partial { background: var(--warning); }
+    .site-dot.offline { background: var(--danger); }
+
+    /* Overview grid */
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .overview-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    .overview-card:active { transform: scale(0.98); }
+
+    .ov-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .ov-name { font-weight: 600; font-size: 0.9em; }
+
+    .ov-status {
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 0.65em;
+      font-weight: 600;
+    }
+
+    .ov-status.online { background: #e6f4ea; color: var(--success); }
+    .ov-status.partial { background: #fef7e0; color: #e37400; }
+    .ov-status.offline { background: #fce8e6; color: var(--danger); }
+
+    .ov-stats {
+      display: flex;
+      gap: 8px;
+      font-size: 0.75em;
+      color: var(--text-secondary);
+    }
+
+    .ov-stat-item { display: flex; align-items: center; gap: 4px; }
+    .ov-stat-num { font-weight: 600; color: var(--text); }
+
+    .ov-kpi {
+      margin-top: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .ov-kpi-item { text-align: center; }
+    .ov-kpi-val { font-size: 1.1em; font-weight: 700; }
+    .ov-kpi-val.green { color: var(--success); }
+    .ov-kpi-val.yellow { color: #e37400; }
+    .ov-kpi-val.red { color: var(--danger); }
+    .ov-kpi-lbl { font-size: 0.6em; color: var(--text-secondary); }
+
+    /* Site Detail */
+    .site-detail { display: none; }
+    .site-detail.active { display: block; }
+
+    .site-detail-header {
+      background: linear-gradient(135deg, var(--primary), #0d47a1);
+      color: #fff;
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .sd-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .sd-name { font-size: 1.1em; font-weight: 600; }
+    .sd-location { font-size: 0.8em; opacity: 0.8; }
+
+    .sd-kpi-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .sd-kpi {
+      flex: 1;
+      text-align: center;
+      background: rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 8px;
+    }
+
+    .sd-kpi-val { font-size: 1.2em; font-weight: 700; }
+    .sd-kpi-lbl { font-size: 0.7em; opacity: 0.8; }
+
+    /* Machine list in site */
+    .site-machines {
+      margin-bottom: 16px;
+    }
+
+    .site-machines h3 {
+      font-size: 0.9em;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .sm-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 6px;
+      box-shadow: var(--shadow);
+    }
+
+    .sm-icon { font-size: 1.2em; }
+    .sm-info { flex: 1; }
+    .sm-name { font-weight: 600; font-size: 0.88em; }
+    .sm-model { font-size: 0.75em; color: var(--text-secondary); }
+
+    .sm-status {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75em;
+    }
+
+    .sm-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .sm-dot.running { background: var(--success); }
+    .sm-dot.stopped { background: var(--danger); }
+    .sm-dot.maintenance { background: var(--warning); animation: blink 2s infinite; }
+
+    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+    /* Staff */
+    .site-staff h3 {
+      font-size: 0.9em;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .staff-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .staff-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px;
+      text-align: center;
+    }
+
+    .staff-avatar { font-size: 1.5em; margin-bottom: 4px; }
+    .staff-name { font-weight: 600; font-size: 0.78em; }
+    .staff-role { font-size: 0.65em; color: var(--text-secondary); }
+
+    .staff-online {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-right: 4px;
+    }
+
+    .staff-online.on { background: var(--success); }
+    .staff-online.off { background: #ccc; }
+
+    /* Comparison chart */
+    .compare-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .compare-title { font-size: 0.85em; font-weight: 600; margin-bottom: 12px; }
+
+    .compare-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .compare-label {
+      width: 60px;
+      font-size: 0.75em;
+      color: var(--text-secondary);
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .compare-bar-bg {
+      flex: 1;
+      height: 18px;
+      background: var(--bg);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .compare-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .compare-val {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.7em;
+      font-weight: 600;
+    }
+
+    /* Alerts per site */
+    .site-alerts h3 {
+      font-size: 0.9em;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .sa-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      font-size: 0.83em;
+    }
+
+    .sa-item.warning { background: #fef7e0; border: 1px solid var(--warning); }
+    .sa-item.critical { background: #fce8e6; border: 1px solid var(--danger); }
+    .sa-item.info { background: #e8f0fe; border: 1px solid var(--primary); }
+
+    [data-theme="dark"] .sa-item.warning { background: #3e2e00; }
+    [data-theme="dark"] .sa-item.critical { background: #3e1010; }
+    [data-theme="dark"] .sa-item.info { background: #0d1b3e; }
+
+    .sa-text { flex: 1; }
+    .sa-time { font-size: 0.7em; color: var(--text-secondary); }
+
+    /* Map */
+    .map-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0;
+      text-align: center;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .map-placeholder {
+      width: 100%;
+      height: 360px;
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #google-map {
+      width: 100%;
+      height: 100%;
+      border-radius: 8px;
+    }
+
+    .gm-style-iw { font-family: inherit; }
+
+    /* Site toggle */
+    .site-toggle {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .site-toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .site-toggle .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: #ccc;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .site-toggle .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      left: 2px;
+      top: 2px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+
+    .site-toggle input:checked + .toggle-slider {
+      background: var(--primary);
+    }
+
+    .site-toggle input:checked + .toggle-slider::before {
+      transform: translateX(16px);
+    }
+
+    /* Site toggle panel */
+    .site-toggle-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .site-toggle-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 0.85em;
+      font-weight: 600;
+    }
+
+    .site-toggle-panel-header .chevron {
+      transition: transform 0.2s;
+      font-size: 0.8em;
+    }
+
+    .site-toggle-panel.open .chevron {
+      transform: rotate(180deg);
+    }
+
+    .site-toggle-list {
+      display: none;
+      border-top: 1px solid var(--border);
+    }
+
+    .site-toggle-panel.open .site-toggle-list {
+      display: block;
+    }
+
+    .site-toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85em;
+    }
+
+    .site-toggle-row:last-child {
+      border-bottom: none;
+    }
+
+    .site-toggle-name {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Site Modal */
+    .site-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .site-modal {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 420px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    .site-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .site-modal-header h3 {
+      margin: 0;
+      font-size: 1em;
+    }
+
+    .site-modal-close {
+      background: none;
+      border: none;
+      font-size: 1.2em;
+      cursor: pointer;
+      color: var(--text-secondary);
+      padding: 4px 8px;
+    }
+
+    .site-modal-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .site-form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .site-form-group label {
+      font-size: 0.78em;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .site-form-group input,
+    .site-form-group select {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9em;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .site-form-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .site-modal-footer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .site-btn-save {
+      padding: 10px 20px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.88em;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .site-btn-cancel {
+      padding: 10px 16px;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.88em;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .site-btn-delete {
+      padding: 10px 16px;
+      background: var(--danger);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.88em;
+      cursor: pointer;
+    }
+
+    .site-btn-geocode {
+      padding: 8px 12px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.82em;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .site-btn-geocode:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Card action buttons */
+    .ov-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+    }
+
+    .ov-action-btn {
+      flex: 1;
+      padding: 6px 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.75em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .ov-action-btn:active {
+      opacity: 0.7;
+    }
+
+    .ov-action-btn.delete {
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+
+    .back-overview {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85em;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+  </style>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCMTQRnk7NwSAm-yW30BbNjS6bI1zTQ9DY&language=ja&region=JP"></script>
+</head>
+<body>
+  <!-- Header -->
+  <header class="l-header">
+    <div class="l-header__left">
+      <button class="l-header__back" onclick="window.location.href='../index.html'">←</button>
+      <span class="l-header__title" id="page-title">拠点管理</span>
+    </div>
+    <div class="l-header__actions">
+      <span style="font-size:0.75em;color:rgba(255,255,255,0.7);" id="total-sites"></span>
+      <button style="background:rgba(255,255,255,0.2);border:none;color:#fff;padding:6px 12px;border-radius:6px;font-size:0.8em;cursor:pointer;" onclick="openSiteModal()">＋ 追加</button>
+    </div>
+  </header>
+
+  <!-- Site Add/Edit Modal -->
+  <div class="site-modal-overlay" id="site-modal" style="display:none;" onclick="if(event.target===this)closeSiteModal()">
+    <div class="site-modal">
+      <div class="site-modal-header">
+        <h3 id="modal-title">拠点を追加</h3>
+        <button class="site-modal-close" onclick="closeSiteModal()">✕</button>
+      </div>
+      <div class="site-modal-body">
+        <div class="site-form-group">
+          <label>拠点名</label>
+          <input type="text" id="site-name" placeholder="例: 大阪工場">
+        </div>
+        <div class="site-form-group">
+          <label>所在地</label>
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="site-location" placeholder="例: 大阪府堺市" style="flex:1;">
+            <button type="button" class="site-btn-geocode" id="btn-geocode" onclick="geocodeLocation()">📍 取得</button>
+          </div>
+          <div id="geocode-result" style="font-size:0.8em;color:var(--text-secondary);margin-top:4px;min-height:1.2em;"></div>
+          <input type="hidden" id="site-lat">
+          <input type="hidden" id="site-lon">
+        </div>
+        <div class="site-form-group">
+          <label>ステータス</label>
+          <select id="site-status">
+            <option value="online">正常</option>
+            <option value="partial">一部異常</option>
+            <option value="offline">オフライン</option>
+          </select>
+        </div>
+        <div class="site-form-row">
+          <div class="site-form-group">
+            <label>OEE (%)</label>
+            <input type="number" id="site-oee" placeholder="85" min="0" max="100">
+          </div>
+          <div class="site-form-group">
+            <label>生産数</label>
+            <input type="number" id="site-output" placeholder="1000" min="0">
+          </div>
+        </div>
+        <div class="site-form-row">
+          <div class="site-form-group">
+            <label>稼働率 (%)</label>
+            <input type="number" id="site-avail" placeholder="90" min="0" max="100">
+          </div>
+          <div class="site-form-group">
+            <label>良品率 (%)</label>
+            <input type="number" id="site-quality" placeholder="98" min="0" max="100">
+          </div>
+        </div>
+      </div>
+      <div class="site-modal-footer">
+        <button class="site-btn-delete" id="btn-delete-site" onclick="deleteSite()" style="display:none;">削除</button>
+        <div style="flex:1;"></div>
+        <button class="site-btn-cancel" onclick="closeSiteModal()">キャンセル</button>
+        <button class="site-btn-save" onclick="saveSite()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ms-page l-page">
+    <!-- Site Selector -->
+    <div class="site-selector" id="site-selector"></div>
+
+    <!-- Overview (all sites) -->
+    <div id="overview-view">
+      <!-- Map -->
+      <div class="map-card">
+        <div class="map-placeholder">
+          <div id="google-map"></div>
+        </div>
+      </div>
+
+      <!-- Site Toggle Panel -->
+      <div class="site-toggle-panel" id="toggle-panel">
+        <div class="site-toggle-panel-header" onclick="this.parentElement.classList.toggle('open')">
+          <span>⚙️ 拠点の表示切替</span>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="site-toggle-list" id="toggle-list"></div>
+      </div>
+
+      <!-- Site Cards -->
+      <div class="overview-grid" id="overview-grid"></div>
+
+      <!-- Comparison -->
+      <div class="compare-card">
+        <div class="compare-title" id="compare-title">📊 拠点間OEE比較</div>
+        <div id="compare-chart"></div>
+      </div>
+    </div>
+
+    <!-- Site Detail -->
+    <div class="site-detail" id="site-detail">
+      <button class="back-overview" onclick="showOverview()">← 全拠点に戻る</button>
+
+      <div class="site-detail-header" id="sd-header">
+        <div class="sd-top">
+          <div>
+            <div class="sd-name" id="sd-name"></div>
+            <div class="sd-location" id="sd-location"></div>
+          </div>
+          <span class="ov-status" id="sd-status"></span>
+        </div>
+        <div class="sd-kpi-row" id="sd-kpi-row"></div>
+      </div>
+
+      <div class="site-machines">
+        <h3 id="sd-machine-title">🏭 設備一覧</h3>
+        <div id="sd-machine-list"></div>
+      </div>
+
+      <div class="site-staff">
+        <h3 id="sd-staff-title">👷 スタッフ</h3>
+        <div class="staff-grid" id="sd-staff-grid"></div>
+      </div>
+
+      <div class="site-alerts">
+        <h3 id="sd-alert-title">⚠️ アラート</h3>
+        <div id="sd-alert-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========== Init ==========
+    const lang = localStorage.getItem('genba-lang') || 'ja';
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('genba-theme') || 'light');
+    document.documentElement.setAttribute('data-fontsize', localStorage.getItem('genba-fontsize') || 'medium');
+
+    // ========== i18n ==========
+    const texts = {
+      ja: {
+        title: '拠点管理', totalSites: '拠点', compare: '📊 拠点間OEE比較',
+        machines: '🏭 設備一覧', staff: '👷 スタッフ', alerts: '⚠️ アラート',
+        oee: 'OEE', avail: '稼働率', quality: '良品率', output: '生産数',
+        online: '正常', partial: '一部異常', offline: 'オフライン',
+        running: '稼働', stopped: '停止', maint: 'メンテ',
+        back: '← 全拠点に戻る', allSites: '全拠点',
+      },
+      en: {
+        title: 'Multi-Site', totalSites: 'sites', compare: '📊 OEE Comparison',
+        machines: '🏭 Equipment', staff: '👷 Staff', alerts: '⚠️ Alerts',
+        oee: 'OEE', avail: 'Availability', quality: 'Quality', output: 'Output',
+        online: 'Online', partial: 'Partial', offline: 'Offline',
+        running: 'Running', stopped: 'Stopped', maint: 'Maintenance',
+        back: '← All Sites', allSites: 'All Sites',
+      },
+      th: {
+        title: 'หลายสาขา', totalSites: 'สาขา', compare: '📊 เปรียบเทียบ OEE',
+        machines: '🏭 เครื่องจักร', staff: '👷 พนักงาน', alerts: '⚠️ การแจ้งเตือน',
+        oee: 'OEE', avail: 'ความพร้อม', quality: 'คุณภาพ', output: 'ผลผลิต',
+        online: 'ปกติ', partial: 'บางส่วน', offline: 'ออฟไลน์',
+        running: 'ทำงาน', stopped: 'หยุด', maint: 'ซ่อมบำรุง',
+        back: '← ทุกสาขา', allSites: 'ทุกสาขา',
+      },
+      vi: {
+        title: 'Đa chi nhánh', totalSites: 'chi nhánh', compare: '📊 So sánh OEE',
+        machines: '🏭 Thiết bị', staff: '👷 Nhân viên', alerts: '⚠️ Cảnh báo',
+        oee: 'OEE', avail: 'Khả dụng', quality: 'Chất lượng', output: 'Sản lượng',
+        online: 'Bình thường', partial: 'Một phần', offline: 'Ngoại tuyến',
+        running: 'Chạy', stopped: 'Dừng', maint: 'Bảo trì',
+        back: '← Tất cả', allSites: 'Tất cả',
+      },
+    };
+
+    const t = texts[lang] || texts.ja;
+    document.getElementById('page-title').textContent = t.title;
+    document.getElementById('compare-title').textContent = t.compare;
+
+    // ========== Site Data ==========
+    const defaultSites = [
+      {
+        id: 'hq', name: { ja: '本社工場', en: 'HQ Factory', th: 'โรงงานหลัก', vi: 'Nhà máy chính' },
+        location: { ja: '埼玉県朝霞市', en: 'Asaka, Saitama, Japan', th: 'อาซากะ ไซตามะ ญี่ปุ่น', vi: 'Asaka, Saitama, Nhật Bản' },
+        lat: 35.7972, lon: 139.5934,
+        status: 'online', mapPos: { top: '33%', left: '58%' },
+        oee: 87.2, availability: 92.5, quality: 98.7, output: 1240,
+        machines: [
+          { icon: '🏭', name: 'CNC旋盤 CK6140', model: 'CK6140', status: 'running' },
+          { icon: '🔨', name: 'プレス機 AP-100', model: 'AP-100', status: 'running' },
+          { icon: '⚡', name: '溶接ロボット RW-200', model: 'RW-200', status: 'maintenance' },
+          { icon: '🏭', name: 'MC BT-40', model: 'BT-40', status: 'running' },
+        ],
+        staff: [
+          { name: '田中太郎', role: 'operator', avatar: '👷', online: true },
+          { name: '山本修', role: 'maintenance', avatar: '🔧', online: true },
+          { name: '佐藤健一', role: 'leader', avatar: '👔', online: true },
+        ],
+        alerts: [
+          { type: 'warning', text: { ja: '溶接ロボット: メンテナンス予定超過', en: 'Welding Robot: Maintenance overdue' }, time: '10:30' },
+          { type: 'info', text: { ja: 'CNC旋盤: 工具寿命 残り20%', en: 'CNC Lathe: Tool life 20% remaining' }, time: '09:15' },
+        ],
+      },
+    ];
+
+    // Load from localStorage or use defaults
+    const sites = JSON.parse(localStorage.getItem('multisite_sites')) || JSON.parse(JSON.stringify(defaultSites));
+    const siteEnabled = JSON.parse(localStorage.getItem('multisite_enabled')) || {};
+    if (Object.keys(siteEnabled).length === 0) {
+      sites.forEach(s => { siteEnabled[s.id] = true; });
+    }
+
+    function persistData() {
+      localStorage.setItem('multisite_sites', JSON.stringify(sites));
+      localStorage.setItem('multisite_enabled', JSON.stringify(siteEnabled));
+    }
+
+    document.getElementById('total-sites').textContent = `${sites.length} ${t.totalSites}`;
+
+    // ========== Render ==========
+
+    function toggleSite(siteId) {
+      siteEnabled[siteId] = !siteEnabled[siteId];
+      persistData();
+      renderOverview();
+      renderSiteSelector();
+      renderTogglePanel();
+    }
+
+    function getEnabledSites() {
+      return sites.filter(s => siteEnabled[s.id]);
+    }
+
+    function renderSiteSelector() {
+      const container = document.getElementById('site-selector');
+      container.innerHTML = `<button class="site-chip active" data-site="all"><span>${t.allSites}</span></button>` +
+        sites.filter(s => siteEnabled[s.id]).map(s => `
+          <button class="site-chip" data-site="${s.id}">
+            <span class="site-dot ${s.status}"></span>
+            <span>${s.name[lang] || s.name.ja}</span>
+          </button>
+        `).join('');
+
+      container.querySelectorAll('.site-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          container.querySelectorAll('.site-chip').forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+          if (chip.dataset.site === 'all') {
+            showOverview();
+          } else {
+            showSiteDetail(chip.dataset.site);
+          }
+        });
+      });
+    }
+
+    // === Google Map ===
+    let gmap = null;
+    let gmapMarkers = [];
+    let gmapLines = [];
+
+    const statusColors = { online: '#4CAF50', partial: '#FF9800', offline: '#F44336' };
+
+    function initGoogleMap() {
+      const firstSite = sites.find(s => typeof s.lat === 'number');
+      const center = firstSite ? { lat: firstSite.lat, lng: firstSite.lon } : { lat: 35.8, lng: 139.6 };
+      gmap = new google.maps.Map(document.getElementById('google-map'), {
+        center: center,
+        zoom: 10,
+        mapTypeId: 'roadmap',
+        mapTypeControl: true,
+        mapTypeControlOptions: {
+          style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+          position: google.maps.ControlPosition.TOP_RIGHT
+        },
+        streetViewControl: false,
+        fullscreenControl: false,
+        zoomControl: true,
+        gestureHandling: 'greedy',
+        styles: [
+          { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+          { featureType: 'transit', stylers: [{ visibility: 'simplified' }] }
+        ]
+      });
+      updateGmapMarkers();
+    }
+
+    function clearGmapMarkers() {
+      gmapMarkers.forEach(m => m.setMap(null));
+      gmapMarkers = [];
+      gmapLines.forEach(l => l.setMap(null));
+      gmapLines = [];
+    }
+
+    function updateGmapMarkers() {
+      if (!gmap) return;
+      clearGmapMarkers();
+
+      const enabledWithPos = sites.filter(s => siteEnabled[s.id] && typeof s.lat === 'number');
+      const disabledWithPos = sites.filter(s => !siteEnabled[s.id] && typeof s.lat === 'number');
+
+      // Enabled markers
+      enabledWithPos.forEach(s => {
+        const color = statusColors[s.status] || '#9E9E9E';
+        const name = s.name[lang] || s.name.ja;
+        const marker = new google.maps.Marker({
+          position: { lat: s.lat, lng: s.lon },
+          map: gmap,
+          title: name,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: color,
+            fillOpacity: 1,
+            strokeColor: '#fff',
+            strokeWeight: 2
+          },
+          label: {
+            text: name,
+            color: '#333',
+            fontSize: '11px',
+            fontWeight: '700',
+            className: 'gmap-marker-label'
+          }
+        });
+        marker.addListener('click', () => showSiteDetail(s.id));
+        gmapMarkers.push(marker);
+      });
+
+      // Disabled markers (grayed out)
+      disabledWithPos.forEach(s => {
+        const name = s.name[lang] || s.name.ja;
+        const marker = new google.maps.Marker({
+          position: { lat: s.lat, lng: s.lon },
+          map: gmap,
+          title: name,
+          opacity: 0.3,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 6,
+            fillColor: '#9E9E9E',
+            fillOpacity: 1,
+            strokeColor: '#fff',
+            strokeWeight: 1.5
+          }
+        });
+        gmapMarkers.push(marker);
+      });
+
+      // Connection lines from HQ to others
+      if (enabledWithPos.length >= 2) {
+        const hq = enabledWithPos[0];
+        for (let i = 1; i < enabledWithPos.length; i++) {
+          const s = enabledWithPos[i];
+          const line = new google.maps.Polyline({
+            path: [
+              { lat: hq.lat, lng: hq.lon },
+              { lat: s.lat, lng: s.lon }
+            ],
+            map: gmap,
+            strokeColor: '#42A5F5',
+            strokeOpacity: 0.5,
+            strokeWeight: 2,
+            geodesic: true
+          });
+          gmapLines.push(line);
+        }
+      }
+
+      // Fit bounds to show all enabled markers
+      if (enabledWithPos.length > 0) {
+        const bounds = new google.maps.LatLngBounds();
+        enabledWithPos.forEach(s => bounds.extend({ lat: s.lat, lng: s.lon }));
+        if (enabledWithPos.length === 1) {
+          gmap.setCenter({ lat: enabledWithPos[0].lat, lng: enabledWithPos[0].lon });
+          gmap.setZoom(12);
+        } else {
+          gmap.fitBounds(bounds, 40);
+        }
+      }
+    }
+
+    function renderOverview() {
+      const enabledSites = getEnabledSites();
+
+      // Update Google Map markers
+      updateGmapMarkers();
+
+      // Cards (only enabled sites)
+      const grid = document.getElementById('overview-grid');
+      const statusLabels = { online: t.online, partial: t.partial, offline: t.offline };
+
+      grid.innerHTML = enabledSites.map(s => {
+        const running = s.machines.filter(m => m.status === 'running').length;
+        const total = s.machines.length;
+        const oeeClass = s.oee >= 85 ? 'green' : s.oee >= 75 ? 'yellow' : 'red';
+
+        return `
+          <div class="overview-card">
+            <div class="ov-header" onclick="showSiteDetail('${s.id}')">
+              <span class="ov-name">${s.name[lang] || s.name.ja}</span>
+              <span class="ov-status ${s.status}">${statusLabels[s.status]}</span>
+            </div>
+            <div class="ov-stats" onclick="showSiteDetail('${s.id}')">
+              <div class="ov-stat-item">🏭 <span class="ov-stat-num">${running}/${total}</span></div>
+              <div class="ov-stat-item">👷 <span class="ov-stat-num">${s.staff.filter(st => st.online).length}</span></div>
+              <div class="ov-stat-item">⚠️ <span class="ov-stat-num">${s.alerts.length}</span></div>
+            </div>
+            <div class="ov-kpi" onclick="showSiteDetail('${s.id}')">
+              <div class="ov-kpi-item"><div class="ov-kpi-val ${oeeClass}">${s.oee}%</div><div class="ov-kpi-lbl">${t.oee}</div></div>
+              <div class="ov-kpi-item"><div class="ov-kpi-val">${s.output}</div><div class="ov-kpi-lbl">${t.output}</div></div>
+            </div>
+            <div class="ov-actions">
+              <button class="ov-action-btn" onclick="event.stopPropagation();openSiteModal('${s.id}')">✏️ 編集</button>
+              <button class="ov-action-btn delete" onclick="event.stopPropagation();confirmDeleteSite('${s.id}')">🗑 削除</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Comparison (only enabled sites)
+      const compare = document.getElementById('compare-chart');
+      const colors = ['#1a73e8', '#1e8e3e', '#f9ab00', '#9334e6'];
+
+      compare.innerHTML = enabledSites.map((s, i) => {
+        const w = (s.oee / 100) * 100;
+        const color = colors[i % colors.length];
+        return `
+          <div class="compare-row">
+            <span class="compare-label">${s.name[lang] || s.name.ja}</span>
+            <div class="compare-bar-bg">
+              <div class="compare-bar-fill" style="width:${w}%;background:${color};"></div>
+              <span class="compare-val">${s.oee}%</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Update header count
+      document.getElementById('total-sites').textContent = `${enabledSites.length}/${sites.length} ${t.totalSites}`;
+    }
+
+    function showOverview() {
+      document.getElementById('overview-view').style.display = 'block';
+      document.getElementById('site-detail').classList.remove('active');
+      document.querySelectorAll('.site-chip').forEach(c => c.classList.remove('active'));
+      document.querySelector('.site-chip[data-site="all"]').classList.add('active');
+    }
+
+    function showSiteDetail(siteId) {
+      const site = sites.find(s => s.id === siteId);
+      if (!site) return;
+
+      document.getElementById('overview-view').style.display = 'none';
+      const detail = document.getElementById('site-detail');
+      detail.classList.add('active');
+
+      // Update selector
+      document.querySelectorAll('.site-chip').forEach(c => {
+        c.classList.toggle('active', c.dataset.site === siteId);
+      });
+
+      // Header
+      const statusLabels = { online: t.online, partial: t.partial, offline: t.offline };
+      document.getElementById('sd-name').textContent = site.name[lang] || site.name.ja;
+      document.getElementById('sd-location').textContent = `📍 ${site.location[lang] || site.location.ja}`;
+      const sdStatus = document.getElementById('sd-status');
+      sdStatus.textContent = statusLabels[site.status];
+      sdStatus.className = `ov-status ${site.status}`;
+
+      document.getElementById('sd-kpi-row').innerHTML = `
+        <div class="sd-kpi"><div class="sd-kpi-val">${site.oee}%</div><div class="sd-kpi-lbl">${t.oee}</div></div>
+        <div class="sd-kpi"><div class="sd-kpi-val">${site.availability}%</div><div class="sd-kpi-lbl">${t.avail}</div></div>
+        <div class="sd-kpi"><div class="sd-kpi-val">${site.quality}%</div><div class="sd-kpi-lbl">${t.quality}</div></div>
+        <div class="sd-kpi"><div class="sd-kpi-val">${site.output}</div><div class="sd-kpi-lbl">${t.output}</div></div>
+      `;
+
+      // Machines
+      const statusIcons = { running: t.running, stopped: t.stopped, maintenance: t.maint };
+      document.getElementById('sd-machine-title').textContent = t.machines;
+      document.getElementById('sd-machine-list').innerHTML = site.machines.map(m => `
+        <div class="sm-card">
+          <span class="sm-icon">${m.icon}</span>
+          <div class="sm-info">
+            <div class="sm-name">${m.name}</div>
+            <div class="sm-model">${m.model}</div>
+          </div>
+          <div class="sm-status">
+            <span class="sm-dot ${m.status}"></span>
+            <span>${statusIcons[m.status] || m.status}</span>
+          </div>
+        </div>
+      `).join('');
+
+      // Staff
+      document.getElementById('sd-staff-title').textContent = t.staff;
+      document.getElementById('sd-staff-grid').innerHTML = site.staff.map(s => `
+        <div class="staff-card">
+          <div class="staff-avatar">${s.avatar}</div>
+          <div class="staff-name"><span class="staff-online ${s.online ? 'on' : 'off'}"></span>${s.name}</div>
+          <div class="staff-role">${s.role}</div>
+        </div>
+      `).join('');
+
+      // Alerts
+      document.getElementById('sd-alert-title').textContent = t.alerts;
+      document.getElementById('sd-alert-list').innerHTML = site.alerts.length === 0
+        ? '<div style="text-align:center;padding:16px;color:var(--text-secondary);font-size:0.85em;">✅ No alerts</div>'
+        : site.alerts.map(a => `
+          <div class="sa-item ${a.type}">
+            <span>${a.type === 'critical' ? '🚨' : a.type === 'warning' ? '⚠️' : 'ℹ️'}</span>
+            <span class="sa-text">${a.text[lang] || a.text.ja || a.text.en}</span>
+            <span class="sa-time">${a.time}</span>
+          </div>
+        `).join('');
+    }
+
+    // ========== Site Modal ==========
+    let editingSiteId = null;
+
+    function openSiteModal(siteId) {
+      editingSiteId = siteId || null;
+      const modal = document.getElementById('site-modal');
+      const title = document.getElementById('modal-title');
+      const deleteBtn = document.getElementById('btn-delete-site');
+
+      if (siteId) {
+        const site = sites.find(s => s.id === siteId);
+        if (!site) return;
+        title.textContent = '拠点を編集';
+        document.getElementById('site-name').value = site.name[lang] || site.name.ja;
+        document.getElementById('site-location').value = site.location[lang] || site.location.ja;
+        document.getElementById('site-lat').value = site.lat || '';
+        document.getElementById('site-lon').value = site.lon || '';
+        const geoResult = document.getElementById('geocode-result');
+        if (typeof site.lat === 'number' && typeof site.lon === 'number') {
+          geoResult.innerHTML = `✅ ${toDMS(site.lat, true)}, ${toDMS(site.lon, false)}`;
+          geoResult.style.color = 'var(--success, #4CAF50)';
+        } else {
+          geoResult.textContent = '📍 取得ボタンで座標を取得してください';
+          geoResult.style.color = 'var(--text-secondary)';
+        }
+        document.getElementById('site-status').value = site.status;
+        document.getElementById('site-oee').value = site.oee;
+        document.getElementById('site-output').value = site.output;
+        document.getElementById('site-avail').value = site.availability;
+        document.getElementById('site-quality').value = site.quality;
+        deleteBtn.style.display = 'inline-block';
+      } else {
+        title.textContent = '拠点を追加';
+        document.getElementById('site-name').value = '';
+        document.getElementById('site-location').value = '';
+        document.getElementById('site-lat').value = '';
+        document.getElementById('site-lon').value = '';
+        document.getElementById('geocode-result').textContent = '';
+        document.getElementById('site-status').value = 'online';
+        document.getElementById('site-oee').value = '';
+        document.getElementById('site-output').value = '';
+        document.getElementById('site-avail').value = '';
+        document.getElementById('site-quality').value = '';
+        deleteBtn.style.display = 'none';
+      }
+
+      modal.style.display = 'flex';
+    }
+
+    function closeSiteModal() {
+      document.getElementById('site-modal').style.display = 'none';
+      editingSiteId = null;
+    }
+
+    function saveSite() {
+      const name = document.getElementById('site-name').value.trim();
+      const location = document.getElementById('site-location').value.trim();
+      const latVal = document.getElementById('site-lat').value;
+      const lonVal = document.getElementById('site-lon').value;
+      const lat = latVal ? parseFloat(latVal) : null;
+      const lon = lonVal ? parseFloat(lonVal) : null;
+      const status = document.getElementById('site-status').value;
+      const oee = parseFloat(document.getElementById('site-oee').value) || 0;
+      const output = parseInt(document.getElementById('site-output').value) || 0;
+      const availability = parseFloat(document.getElementById('site-avail').value) || 0;
+      const quality = parseFloat(document.getElementById('site-quality').value) || 0;
+
+      if (!name) { alert('拠点名を入力してください'); return; }
+      if (lat === null || lon === null) { alert('📍 取得ボタンで座標を取得してください'); return; }
+
+      if (editingSiteId) {
+        // Edit existing
+        const site = sites.find(s => s.id === editingSiteId);
+        if (site) {
+          site.name = { ja: name, en: name, th: name, vi: name };
+          site.location = { ja: location, en: location, th: location, vi: location };
+          site.lat = lat;
+          site.lon = lon;
+          site.status = status;
+          site.oee = oee;
+          site.output = output;
+          site.availability = availability;
+          site.quality = quality;
+        }
+      } else {
+        // Add new
+        const id = 'site_' + Date.now();
+        sites.push({
+          id,
+          name: { ja: name, en: name, th: name, vi: name },
+          location: { ja: location, en: location, th: location, vi: location },
+          lat, lon,
+          status,
+          mapPos: { top: '50%', left: '50%' },
+          oee, availability, quality, output,
+          machines: [],
+          staff: [],
+          alerts: [],
+        });
+        siteEnabled[id] = true;
+      }
+
+      closeSiteModal();
+      persistData();
+      renderSiteSelector();
+      renderOverview();
+      renderTogglePanel();
+    }
+
+    function deleteSite() {
+      if (!editingSiteId) return;
+      if (!confirm('この拠点を削除しますか？')) return;
+
+      const idx = sites.findIndex(s => s.id === editingSiteId);
+      if (idx !== -1) {
+        sites.splice(idx, 1);
+        delete siteEnabled[editingSiteId];
+      }
+
+      closeSiteModal();
+      persistData();
+      showOverview();
+      renderSiteSelector();
+      renderOverview();
+      renderTogglePanel();
+    }
+
+    function confirmDeleteSite(siteId) {
+      const site = sites.find(s => s.id === siteId);
+      if (!site) return;
+      if (!confirm(`「${site.name[lang] || site.name.ja}」を削除しますか？`)) return;
+      const idx = sites.findIndex(s => s.id === siteId);
+      if (idx !== -1) {
+        sites.splice(idx, 1);
+        delete siteEnabled[siteId];
+      }
+      persistData();
+      showOverview();
+      renderSiteSelector();
+      renderOverview();
+      renderTogglePanel();
+    }
+
+    function renderTogglePanel() {
+      const list = document.getElementById('toggle-list');
+      list.innerHTML = sites.map(s => {
+        const loc = s.location[lang] || s.location.ja || '';
+        const coords = (typeof s.lat === 'number' && typeof s.lon === 'number')
+          ? `${toDMS(s.lat, true)}, ${toDMS(s.lon, false)}`
+          : '座標未設定';
+        return `
+        <div class="site-toggle-row">
+          <div class="site-toggle-name">
+            <span class="site-dot ${siteEnabled[s.id] ? s.status : 'offline'}"></span>
+            <div>
+              <div>${s.name[lang] || s.name.ja}</div>
+              <div style="font-size:0.72em;color:var(--text-secondary);margin-top:1px;">${loc} (${coords})</div>
+            </div>
+          </div>
+          <label class="site-toggle" onclick="event.stopPropagation();">
+            <input type="checkbox" ${siteEnabled[s.id] ? 'checked' : ''} onchange="toggleSite('${s.id}')">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>`;
+      }).join('');
+    }
+
+    // Init
+    renderSiteSelector();
+    initGoogleMap();
+    renderOverview();
+    renderTogglePanel();
+  </script>
+</body>
+</html>

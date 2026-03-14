@@ -1,0 +1,78 @@
+{
+  "app_name": "現場AIナビ",
+  "welcome": "ようこそ、現場AIナビへ",
+  "nav": {
+    "home": "ホーム",
+    "guide": "操作ガイド",
+    "troubleshoot": "トラブル対応",
+    "safety": "安全マニュアル",
+    "settings": "設定"
+  },
+  "home": {
+    "greeting": "お疲れ様です",
+    "quick_actions": "クイックアクション",
+    "recent": "最近の履歴"
+  },
+  "guide": {
+    "title": "機械操作ガイド",
+    "search_placeholder": "機械名・型番で検索...",
+    "step": "ステップ",
+    "next": "次へ",
+    "prev": "前へ",
+    "complete": "完了",
+    "video": "動画を見る",
+    "photo": "写真を見る"
+  },
+  "troubleshoot": {
+    "title": "トラブルシューティング",
+    "input_placeholder": "症状や問題を入力してください...",
+    "ask_ai": "AIに質問",
+    "listening": "音声入力中...",
+    "thinking": "AI回答生成中...",
+    "suggestion": "提案された解決策",
+    "try_again": "別の質問をする",
+    "voice_input": "音声で質問",
+    "history": "質問履歴"
+  },
+  "safety": {
+    "title": "安全マニュアル",
+    "search_placeholder": "マニュアルを検索...",
+    "categories": "カテゴリ",
+    "emergency": "緊急時の対応",
+    "daily_check": "日常点検",
+    "protective_equipment": "保護具",
+    "open_pdf": "PDFを開く"
+  },
+  "settings": {
+    "title": "設定",
+    "language": "言語",
+    "voice": "音声設定",
+    "voice_speed": "読み上げ速度",
+    "voice_enabled": "音声読み上げ",
+    "theme": "テーマ",
+    "dark_mode": "ダークモード",
+    "font_size": "文字サイズ",
+    "ai_model": "AIモデル",
+    "offline_mode": "オフラインモード"
+  },
+  "common": {
+    "loading": "読み込み中...",
+    "error": "エラーが発生しました",
+    "retry": "再試行",
+    "back": "戻る",
+    "close": "閉じる",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "yes": "はい",
+    "no": "いいえ",
+    "search": "検索",
+    "no_results": "結果が見つかりません"
+  },
+  "voice": {
+    "start": "音声入力開始",
+    "stop": "音声入力停止",
+    "read_aloud": "読み上げ",
+    "not_supported": "お使いのブラウザは音声機能に対応していません"
+  }
+}

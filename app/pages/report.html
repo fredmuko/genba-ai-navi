@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>生産レポート - 現場AIナビ</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <style>
+    .report-page { padding: 16px; padding-bottom: 32px; }
+
+    /* Report Type Tabs */
+    .report-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 4px;
+    }
+
+    .report-tab {
+      flex: 1;
+      padding: 10px 8px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.85em;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+
+    .report-tab.active {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    /* Date Selector */
+    .date-selector {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 16px;
+      padding: 10px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .date-selector input[type="date"] {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.85em;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    .date-separator {
+      font-size: 0.85em;
+      color: var(--text-secondary);
+    }
+
+    .date-nav-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      color: var(--text);
+      font-size: 0.9em;
+    }
+
+    .date-nav-btn:active { background: var(--bg); }
+
+    /* KPI Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .kpi-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .kpi-label {
+      font-size: 0.75em;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .kpi-value {
+      font-size: 1.6em;
+      font-weight: 700;
+    }
+
+    .kpi-value.green { color: var(--success); }
+    .kpi-value.yellow { color: #e37400; }
+    .kpi-value.red { color: var(--danger); }
+    .kpi-value.blue { color: var(--primary); }
+
+    .kpi-sub {
+      font-size: 0.7em;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    /* Section */
+    .rpt-section {
+      margin-bottom: 20px;
+    }
+
+    .rpt-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .rpt-section-header h3 {
+      font-size: 0.95em;
+    }
+
+    /* Machine Breakdown Table */
+    .machine-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      font-size: 0.8em;
+    }
+
+    .machine-table th {
+      background: var(--primary);
+      color: #fff;
+      padding: 10px 8px;
+      text-align: left;
+      font-weight: 500;
+      font-size: 0.9em;
+      white-space: nowrap;
+    }
+
+    .machine-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .machine-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .machine-table tr:nth-child(even) {
+      background: rgba(0,0,0,0.02);
+    }
+
+    [data-theme="dark"] .machine-table tr:nth-child(even) {
+      background: rgba(255,255,255,0.03);
+    }
+
+    .quality-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 0.85em;
+      font-weight: 600;
+    }
+
+    .quality-badge.high { background: rgba(30,142,62,0.1); color: var(--success); }
+    .quality-badge.medium { background: rgba(249,171,0,0.1); color: #e37400; }
+    .quality-badge.low { background: rgba(217,48,37,0.1); color: var(--danger); }
+
+    [data-theme="dark"] .quality-badge.high { background: rgba(30,142,62,0.2); }
+    [data-theme="dark"] .quality-badge.medium { background: rgba(249,171,0,0.2); }
+    [data-theme="dark"] .quality-badge.low { background: rgba(217,48,37,0.2); }
+
+    /* Bar Chart */
+    .chart-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .chart-title {
+      font-size: 0.85em;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 120px;
+      padding-top: 8px;
+    }
+
+    .bar-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      justify-content: flex-end;
+    }
+
+    .bar {
+      width: 100%;
+      max-width: 32px;
+      border-radius: 4px 4px 0 0;
+      transition: height 0.5s ease;
+    }
+
+    .bar.primary { background: var(--primary); }
+    .bar.success { background: var(--success); }
+    .bar.warning { background: var(--warning); }
+    .bar.danger { background: var(--danger); }
+
+    .bar-label {
+      font-size: 0.6em;
+      color: var(--text-secondary);
+      margin-top: 4px;
+      text-align: center;
+    }
+
+    .bar-value {
+      font-size: 0.65em;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    /* Stacked bar for shift comparison */
+    .stacked-bars {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .stacked-bar-group {
+      flex: 1;
+    }
+
+    .stacked-bar-label {
+      font-size: 0.8em;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .stacked-bar-track {
+      height: 24px;
+      background: var(--bg);
+      border-radius: 6px;
+      overflow: hidden;
+      display: flex;
+      border: 1px solid var(--border);
+    }
+
+    .stacked-bar-fill {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65em;
+      font-weight: 600;
+      color: #fff;
+      transition: width 0.5s ease;
+    }
+
+    .stacked-bar-stats {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 4px;
+      font-size: 0.7em;
+      color: var(--text-secondary);
+    }
+
+    /* Donut Chart */
+    .donut-container {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .donut {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .donut-center {
+      position: absolute;
+      inset: 15px;
+      background: var(--bg-card);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1em;
+      font-weight: 700;
+      flex-direction: column;
+    }
+
+    .donut-center-label {
+      font-size: 0.5em;
+      font-weight: 400;
+      color: var(--text-secondary);
+    }
+
+    .donut-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.8em;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Shift Comparison */
+    .shift-compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .shift-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .shift-card-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 10px;
+      font-weight: 600;
+      font-size: 0.9em;
+    }
+
+    .shift-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 10px;
+      font-size: 0.75em;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .shift-badge.a { background: var(--primary); }
+    .shift-badge.b { background: var(--success); }
+
+    .shift-stat {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      font-size: 0.8em;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .shift-stat:last-child { border-bottom: none; }
+
+    .shift-stat-value {
+      font-weight: 600;
+    }
+
+    /* Events Log */
+    .events-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .event-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.85em;
+      box-shadow: var(--shadow);
+    }
+
+    .event-icon { font-size: 1.1em; flex-shrink: 0; }
+    .event-info { flex: 1; }
+    .event-title { font-weight: 600; font-size: 0.9em; }
+    .event-desc { font-size: 0.8em; color: var(--text-secondary); margin-top: 2px; }
+    .event-time { font-size: 0.7em; color: var(--text-secondary); white-space: nowrap; flex-shrink: 0; }
+
+    .event-item.error { border-left: 3px solid var(--danger); }
+    .event-item.warning { border-left: 3px solid var(--warning); }
+    .event-item.info { border-left: 3px solid var(--primary); }
+    .event-item.success { border-left: 3px solid var(--success); }
+
+    /* AI Summary */
+    .ai-summary-card {
+      background: linear-gradient(135deg, #1a73e8, #0d47a1);
+      color: #fff;
+      border-radius: var(--radius);
+      padding: 16px;
+      position: relative;
+    }
+
+    .ai-summary-card h4 {
+      font-size: 0.9em;
+      margin-bottom: 8px;
+      opacity: 0.9;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ai-summary-content {
+      font-size: 0.85em;
+      line-height: 1.6;
+      opacity: 0.95;
+      white-space: pre-line;
+      min-height: 60px;
+    }
+
+    .ai-summary-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .ai-action-btn {
+      padding: 8px 14px;
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 0.8em;
+      transition: background 0.2s;
+    }
+
+    .ai-action-btn:active { background: rgba(255,255,255,0.3); }
+
+    .ai-loading {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85em;
+      opacity: 0.8;
+    }
+
+    .ai-loading .dots::after {
+      content: '';
+      animation: dots 1.5s steps(4, end) infinite;
+    }
+
+    @keyframes dots {
+      0% { content: ''; }
+      25% { content: '.'; }
+      50% { content: '..'; }
+      75% { content: '...'; }
+    }
+
+    /* Export & Share */
+    .action-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 0.8em;
+      color: var(--text);
+      box-shadow: var(--shadow);
+      transition: transform 0.15s;
+    }
+
+    .action-btn:active { transform: scale(0.97); }
+
+    .action-btn.primary-action {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    /* Previous Reports */
+    .prev-reports-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .prev-report-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: transform 0.15s;
+    }
+
+    .prev-report-item:active { transform: scale(0.98); }
+
+    .prev-report-icon { font-size: 1.2em; }
+    .prev-report-info { flex: 1; }
+    .prev-report-title { font-weight: 600; font-size: 0.85em; }
+    .prev-report-date { font-size: 0.7em; color: var(--text-secondary); margin-top: 2px; }
+    .prev-report-arrow { color: var(--text-secondary); font-size: 0.9em; }
+
+    .empty-state {
+      text-align: center;
+      padding: 24px;
+      color: var(--text-secondary);
+      font-size: 0.85em;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #333;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 0.85em;
+      z-index: 300;
+      transition: transform 0.3s ease;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Print styles */
+    @media print {
+      #app-header, .action-bar, .ai-summary-actions, .date-nav-btn, .report-tabs, .prev-reports-list { display: none !important; }
+      body { padding-top: 0; }
+      .report-page { padding: 0; }
+      .kpi-card, .chart-card, .shift-card, .event-item { break-inside: avoid; }
+      .ai-summary-card { background: #1a73e8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+
+    /* Responsive */
+    @media (min-width: 600px) {
+      .kpi-grid { grid-template-columns: repeat(4, 1fr); }
+      .shift-compare { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="l-header">
+    <div class="l-header__left">
+      <button class="l-header__back" onclick="window.location.href='../index.html'">&#8592;</button>
+      <span class="l-header__title" id="page-title">生産レポート</span>
+    </div>
+    <div class="l-header__actions">
+      <span style="font-size:0.7em;opacity:0.7;background:rgba(255,255,255,0.2);padding:3px 8px;border-radius:10px;" id="lang-indicator">JA</span>
+    </div>
+  </header>
+
+  <div class="report-page l-page">
+    <!-- Report Type Tabs -->
+    <div class="report-tabs" id="report-tabs">
+      <button class="report-tab active" data-type="daily" id="tab-daily">日報</button>
+      <button class="report-tab" data-type="weekly" id="tab-weekly">週報</button>
+      <button class="report-tab" data-type="monthly" id="tab-monthly">月報</button>
+    </div>
+
+    <!-- Date Selector -->
+    <div class="date-selector">
+      <button class="date-nav-btn" id="date-prev">&#9664;</button>
+      <input type="date" id="date-start">
+      <span class="date-separator" id="date-sep" style="display:none;">~</span>
+      <input type="date" id="date-end" style="display:none;">
+      <button class="date-nav-btn" id="date-next">&#9654;</button>
+    </div>
+
+    <!-- Production Summary KPI -->
+    <div class="kpi-grid" id="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label" id="kpi-label-prod">生産数</div>
+        <div class="kpi-value blue" id="kpi-prod">500</div>
+        <div class="kpi-sub" id="kpi-prod-sub">目標: 520</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label" id="kpi-label-good">良品数</div>
+        <div class="kpi-value green" id="kpi-good">491</div>
+        <div class="kpi-sub" id="kpi-good-rate">98.2%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label" id="kpi-label-defect">不良数</div>
+        <div class="kpi-value red" id="kpi-defect">9</div>
+        <div class="kpi-sub" id="kpi-defect-rate">1.8%</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label" id="kpi-label-oee">稼働率 (OEE)</div>
+        <div class="kpi-value green" id="kpi-oee">87.2%</div>
+        <div class="kpi-sub" id="kpi-oee-sub">停止: 23分</div>
+      </div>
+    </div>
+
+    <!-- Machine Breakdown Table -->
+    <div class="rpt-section">
+      <div class="rpt-section-header">
+        <h3 id="section-machine">&#x1F3ED; 機械別内訳</h3>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="machine-table" id="machine-table">
+          <thead>
+            <tr>
+              <th id="th-machine">機械</th>
+              <th id="th-prod">生産</th>
+              <th id="th-good">良品</th>
+              <th id="th-defect">不良</th>
+              <th id="th-quality">品質率</th>
+              <th id="th-uptime">稼働</th>
+            </tr>
+          </thead>
+          <tbody id="machine-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Production Trend Bar Chart -->
+    <div class="rpt-section">
+      <div class="rpt-section-header">
+        <h3 id="section-trend">&#x1F4C8; 生産推移</h3>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title" id="chart-trend-title">時間別生産数</div>
+        <div class="bar-chart" id="trend-chart"></div>
+      </div>
+    </div>
+
+    <!-- Quality Donut Chart -->
+    <div class="rpt-section">
+      <div class="rpt-section-header">
+        <h3 id="section-quality">&#x1F3AF; 品質内訳</h3>
+      </div>
+      <div class="chart-card">
+        <div class="donut-container" id="quality-donut-container">
+          <!-- filled by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Shift Comparison -->
+    <div class="rpt-section">
+      <div class="rpt-section-header">
+        <h3 id="section-shift">&#x1F504; シフト比較</h3>
+      </div>
+      <div class="shift-compare" id="shift-compare">
+        <!-- filled by JS -->
+      </div>
+      <div class="chart-card" style="margin-top:10px;">
+        <div class="chart-title" id="shift-bar-title">シフト別生産比較</div>
+        <div class="stacked-bars" id="shift-stacked"></div>
+      </div>
+    </div>
+
+    <!-- Notable Events -->
+    <div class="rpt-section">
+      <div class="rpt-section-header">
+        <h3 id="section-events">&#x1F4CB; 特記事項</h3>
+      </div>
+      <div class="events-list" id="events-list">
+        <!-- filled by JS -->
+      </div>
+    </div>
+
+    <!-- AI Summary -->
+    <div class="rpt-section">
+      <div class="rpt-section-header">
+        <h3 id="section-ai">&#x1F916; AI分析サマリー</h3>
+      </div>
+      <div class="ai-summary-card" id="ai-summary-card">
+        <h4><span>&#x1F916;</span> <span id="ai-summary-title">AI生産分析</span></h4>
+        <div class="ai-summary-content" id="ai-summary-content">
+          <div class="ai-loading" id="ai-loading" style="display:none;">
+            <span id="ai-loading-text">AIが分析中</span><span class="dots"></span>
+          </div>
+          <span id="ai-summary-placeholder">下のボタンをクリックしてAI分析を実行</span>
+        </div>
+        <div class="ai-summary-actions">
+          <button class="ai-action-btn" id="btn-ai-analyze" onclick="generateAISummary()">&#x1F50D; <span id="btn-ai-text">分析実行</span></button>
+          <button class="ai-action-btn" id="btn-ai-copy" onclick="copyAISummary()" style="display:none;">&#x1F4CB; <span id="btn-copy-text">コピー</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Export & Share -->
+    <div class="rpt-section">
+      <div class="rpt-section-header">
+        <h3 id="section-export">&#x1F4E4; エクスポート・共有</h3>
+      </div>
+      <div class="action-bar">
+        <button class="action-btn" onclick="exportCSV()">&#x1F4C4; <span id="btn-csv">CSV出力</span></button>
+        <button class="action-btn" onclick="window.print()">&#x1F5A8; <span id="btn-pdf">PDF印刷</span></button>
+        <button class="action-btn" onclick="copyReportLink()">&#x1F517; <span id="btn-link">リンクコピー</span></button>
+        <button class="action-btn primary-action" onclick="downloadReport()">&#x2B07; <span id="btn-download">ダウンロード</span></button>
+      </div>
+    </div>
+
+    <!-- Previous Reports -->
+    <div class="rpt-section">
+      <div class="rpt-section-header">
+        <h3 id="section-prev">&#x1F4C2; 過去のレポート</h3>
+      </div>
+      <div class="prev-reports-list" id="prev-reports-list">
+        <!-- filled by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ========== Init ==========
+    const lang = localStorage.getItem('genba-lang') || 'ja';
+    const theme = localStorage.getItem('genba-theme') || 'light';
+    const fontsize = localStorage.getItem('genba-fontsize') || 'medium';
+    const aiModel = localStorage.getItem('genba-model') || 'gemma3:latest';
+
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-fontsize', fontsize);
+
+    const langLabels = { ja: 'JA', en: 'EN', th: 'TH', vi: 'VI' };
+    document.getElementById('lang-indicator').textContent = langLabels[lang] || 'JA';
+
+    // ========== i18n ==========
+    const i18n = {
+      ja: {
+        title: '生産レポート', daily: '日報', weekly: '週報', monthly: '月報',
+        prod: '生産数', good: '良品数', defect: '不良数', oee: '稼働率 (OEE)',
+        target: '目標', stopTime: '停止',
+        machine: '機械別内訳', machineCol: '機械', prodCol: '生産', goodCol: '良品', defectCol: '不良', qualityCol: '品質率', uptimeCol: '稼働',
+        trend: '生産推移', hourlyProd: '時間別生産数',
+        quality: '品質内訳', goodLabel: '良品', defectLabel: '不良品', reworkLabel: '手直し品',
+        shift: 'シフト比較', shiftBarTitle: 'シフト別生産比較',
+        shiftProd: '生産数', shiftGood: '良品率', shiftDefect: '不良数', shiftDowntime: '停止時間',
+        events: '特記事項',
+        ai: 'AI分析サマリー', aiTitle: 'AI生産分析', aiLoading: 'AIが分析中',
+        aiPlaceholder: '下のボタンをクリックしてAI分析を実行',
+        aiAnalyze: '分析実行', aiCopy: 'コピー', aiError: 'AI分析に失敗しました。Ollamaが起動しているか確認してください。',
+        export: 'エクスポート・共有', csv: 'CSV出力', pdf: 'PDF印刷', link: 'リンクコピー', download: 'ダウンロード',
+        prev: '過去のレポート', noPrev: '保存されたレポートはありません',
+        copied: 'コピーしました', saved: 'レポートを保存しました', downloaded: 'ダウンロードしました',
+        min: '分', units: '個',
+        cnc: 'CNC旋盤', press: 'プレス機', weld: '溶接ロボット',
+        evtMaint: 'プレス機AP-100 定期メンテナンス実施', evtMaintDesc: '10:00-10:25 油圧系統点検・フィルター交換',
+        evtDefect: 'CNC旋盤 寸法不良検出', evtDefectDesc: '14:30 ロット#2847 工具摩耗による寸法ズレ 工具交換で復旧',
+        evtRecord: '溶接ロボット 連続稼働記録更新', evtRecordDesc: '本日で連続稼働45日を達成',
+        evtShift: 'Bシフト 人員変更', evtShiftDesc: 'Nguyen → Tran に交代（体調不良のため）',
+      },
+      en: {
+        title: 'Production Report', daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly',
+        prod: 'Production', good: 'Good Units', defect: 'Defects', oee: 'OEE Rate',
+        target: 'Target', stopTime: 'Downtime',
+        machine: 'Machine Breakdown', machineCol: 'Machine', prodCol: 'Produced', goodCol: 'Good', defectCol: 'Defect', qualityCol: 'Quality', uptimeCol: 'Uptime',
+        trend: 'Production Trend', hourlyProd: 'Hourly Production',
+        quality: 'Quality Breakdown', goodLabel: 'Good', defectLabel: 'Defective', reworkLabel: 'Rework',
+        shift: 'Shift Comparison', shiftBarTitle: 'Shift Production Comparison',
+        shiftProd: 'Production', shiftGood: 'Quality Rate', shiftDefect: 'Defects', shiftDowntime: 'Downtime',
+        events: 'Notable Events',
+        ai: 'AI Analysis Summary', aiTitle: 'AI Production Analysis', aiLoading: 'AI analyzing',
+        aiPlaceholder: 'Click the button below to run AI analysis',
+        aiAnalyze: 'Run Analysis', aiCopy: 'Copy', aiError: 'AI analysis failed. Please check if Ollama is running.',
+        export: 'Export & Share', csv: 'CSV Export', pdf: 'Print PDF', link: 'Copy Link', download: 'Download',
+        prev: 'Previous Reports', noPrev: 'No saved reports',
+        copied: 'Copied', saved: 'Report saved', downloaded: 'Downloaded',
+        min: 'min', units: 'units',
+        cnc: 'CNC Lathe', press: 'Press Machine', weld: 'Welding Robot',
+        evtMaint: 'Press AP-100 Scheduled Maintenance', evtMaintDesc: '10:00-10:25 Hydraulic inspection & filter replacement',
+        evtDefect: 'CNC Lathe Dimensional Defect Detected', evtDefectDesc: '14:30 Lot #2847 tool wear deviation. Recovered after tool change.',
+        evtRecord: 'Welding Robot Uptime Record', evtRecordDesc: 'Achieved 45 consecutive days of operation today',
+        evtShift: 'B-Shift Personnel Change', evtShiftDesc: 'Nguyen replaced by Tran (health reasons)',
+      },
+      th: {
+        title: 'รายงานการผลิต', daily: 'รายวัน', weekly: 'รายสัปดาห์', monthly: 'รายเดือน',
+        prod: 'จำนวนผลิต', good: 'ของดี', defect: 'ของเสีย', oee: 'อัตรา OEE',
+        target: 'เป้าหมาย', stopTime: 'หยุดทำงาน',
+        machine: 'รายละเอียดเครื่องจักร', machineCol: 'เครื่องจักร', prodCol: 'ผลิต', goodCol: 'ดี', defectCol: 'เสีย', qualityCol: 'คุณภาพ', uptimeCol: 'เดินเครื่อง',
+        trend: 'แนวโน้มการผลิต', hourlyProd: 'ผลผลิตรายชั่วโมง',
+        quality: 'รายละเอียดคุณภาพ', goodLabel: 'ดี', defectLabel: 'เสีย', reworkLabel: 'แก้ไข',
+        shift: 'เปรียบเทียบกะ', shiftBarTitle: 'เปรียบเทียบผลผลิตตามกะ',
+        shiftProd: 'จำนวนผลิต', shiftGood: 'อัตราคุณภาพ', shiftDefect: 'ของเสีย', shiftDowntime: 'เวลาหยุด',
+        events: 'เหตุการณ์สำคัญ',
+        ai: 'สรุปวิเคราะห์ AI', aiTitle: 'AI วิเคราะห์การผลิต', aiLoading: 'AI กำลังวิเคราะห์',
+        aiPlaceholder: 'คลิกปุ่มด้านล่างเพื่อเริ่มวิเคราะห์',
+        aiAnalyze: 'เริ่มวิเคราะห์', aiCopy: 'คัดลอก', aiError: 'วิเคราะห์ AI ล้มเหลว กรุณาตรวจสอบ Ollama',
+        export: 'ส่งออกและแชร์', csv: 'ส่งออก CSV', pdf: 'พิมพ์ PDF', link: 'คัดลอกลิงก์', download: 'ดาวน์โหลด',
+        prev: 'รายงานก่อนหน้า', noPrev: 'ไม่มีรายงานที่บันทึก',
+        copied: 'คัดลอกแล้ว', saved: 'บันทึกรายงานแล้ว', downloaded: 'ดาวน์โหลดแล้ว',
+        min: 'นาที', units: 'ชิ้น',
+        cnc: 'เครื่องกลึง CNC', press: 'เครื่องปั๊ม', weld: 'หุ่นยนต์เชื่อม',
+        evtMaint: 'เครื่องปั๊ม AP-100 บำรุงรักษาตามกำหนด', evtMaintDesc: '10:00-10:25 ตรวจไฮดรอลิกและเปลี่ยนฟิลเตอร์',
+        evtDefect: 'เครื่องกลึง CNC ตรวจพบขนาดผิด', evtDefectDesc: '14:30 ล็อต #2847 เครื่องมือสึก แก้ไขโดยเปลี่ยนเครื่องมือ',
+        evtRecord: 'หุ่นยนต์เชื่อม สถิติเดินเครื่องต่อเนื่อง', evtRecordDesc: 'ครบ 45 วันเดินเครื่องต่อเนื่องวันนี้',
+        evtShift: 'กะ B เปลี่ยนบุคลากร', evtShiftDesc: 'Nguyen เปลี่ยนเป็น Tran (เหตุผลสุขภาพ)',
+      },
+      vi: {
+        title: 'Bao cao san xuat', daily: 'Hang ngay', weekly: 'Hang tuan', monthly: 'Hang thang',
+        prod: 'San luong', good: 'Dat chuan', defect: 'Loi', oee: 'OEE',
+        target: 'Muc tieu', stopTime: 'Dung may',
+        machine: 'Chi tiet may', machineCol: 'May', prodCol: 'San xuat', goodCol: 'Dat', defectCol: 'Loi', qualityCol: 'Chat luong', uptimeCol: 'Hoat dong',
+        trend: 'Xu huong san xuat', hourlyProd: 'San luong theo gio',
+        quality: 'Chi tiet chat luong', goodLabel: 'Dat', defectLabel: 'Loi', reworkLabel: 'Sua lai',
+        shift: 'So sanh ca', shiftBarTitle: 'So sanh san luong theo ca',
+        shiftProd: 'San luong', shiftGood: 'Ti le chat luong', shiftDefect: 'Loi', shiftDowntime: 'Dung may',
+        events: 'Su kien dang chu y',
+        ai: 'Phan tich AI', aiTitle: 'AI phan tich san xuat', aiLoading: 'AI dang phan tich',
+        aiPlaceholder: 'Nhan nut ben duoi de chay phan tich AI',
+        aiAnalyze: 'Chay phan tich', aiCopy: 'Sao chep', aiError: 'Phan tich AI that bai. Vui long kiem tra Ollama.',
+        export: 'Xuat & Chia se', csv: 'Xuat CSV', pdf: 'In PDF', link: 'Sao lien ket', download: 'Tai xuong',
+        prev: 'Bao cao truoc', noPrev: 'Khong co bao cao nao',
+        copied: 'Da sao chep', saved: 'Da luu bao cao', downloaded: 'Da tai xuong',
+        min: 'phut', units: 'cai',
+        cnc: 'May tien CNC', press: 'May ep', weld: 'Robot han',
+        evtMaint: 'May ep AP-100 bao tri dinh ky', evtMaintDesc: '10:00-10:25 Kiem tra thuy luc & thay bo loc',
+        evtDefect: 'May tien CNC phat hien loi kich thuoc', evtDefectDesc: '14:30 Lo #2847 dao mon. Khac phuc bang cach thay dao.',
+        evtRecord: 'Robot han dat ky luc hoat dong', evtRecordDesc: 'Dat 45 ngay hoat dong lien tuc hom nay',
+        evtShift: 'Ca B thay doi nhan su', evtShiftDesc: 'Nguyen thay boi Tran (ly do suc khoe)',
+      },
+    };
+
+    const t = i18n[lang] || i18n.ja;
+
+    // ========== Sample Data ==========
+    let reportType = 'daily';
+
+    const sampleData = {
+      production: 500,
+      target: 520,
+      good: 491,
+      defect: 9,
+      qualityRate: 98.2,
+      oee: 87.2,
+      downtime: 23,
+      machines: [
+        { name: t.cnc, nameKey: 'cnc', prod: 180, good: 179, defect: 1, quality: 99.4, uptime: 95.2 },
+        { name: t.press, nameKey: 'press', prod: 200, good: 197, defect: 3, quality: 98.5, uptime: 88.0 },
+        { name: t.weld, nameKey: 'weld', prod: 120, good: 115, defect: 5, quality: 95.8, uptime: 82.1 },
+      ],
+      hourly: [
+        { hour: '08', value: 58 }, { hour: '09', value: 65 }, { hour: '10', value: 42 },
+        { hour: '11', value: 62 }, { hour: '12', value: 22 }, { hour: '13', value: 68 },
+        { hour: '14', value: 72 }, { hour: '15', value: 61 }, { hour: '16', value: 50 },
+      ],
+      shiftA: { prod: 250, good: 246, defect: 4, quality: 98.4, downtime: 10 },
+      shiftB: { prod: 250, good: 245, defect: 5, quality: 98.0, downtime: 13 },
+    };
+
+    // ========== Apply i18n ==========
+    document.getElementById('page-title').textContent = t.title;
+    document.getElementById('tab-daily').textContent = t.daily;
+    document.getElementById('tab-weekly').textContent = t.weekly;
+    document.getElementById('tab-monthly').textContent = t.monthly;
+    document.getElementById('kpi-label-prod').textContent = t.prod;
+    document.getElementById('kpi-label-good').textContent = t.good;
+    document.getElementById('kpi-label-defect').textContent = t.defect;
+    document.getElementById('kpi-label-oee').textContent = t.oee;
+    document.getElementById('kpi-prod-sub').textContent = `${t.target}: ${sampleData.target}`;
+    document.getElementById('kpi-oee-sub').textContent = `${t.stopTime}: ${sampleData.downtime}${t.min}`;
+    document.getElementById('section-machine').textContent = '\u{1F3ED} ' + t.machine;
+    document.getElementById('th-machine').textContent = t.machineCol;
+    document.getElementById('th-prod').textContent = t.prodCol;
+    document.getElementById('th-good').textContent = t.goodCol;
+    document.getElementById('th-defect').textContent = t.defectCol;
+    document.getElementById('th-quality').textContent = t.qualityCol;
+    document.getElementById('th-uptime').textContent = t.uptimeCol;
+    document.getElementById('section-trend').textContent = '\u{1F4C8} ' + t.trend;
+    document.getElementById('chart-trend-title').textContent = t.hourlyProd;
+    document.getElementById('section-quality').textContent = '\u{1F3AF} ' + t.quality;
+    document.getElementById('section-shift').textContent = '\u{1F504} ' + t.shift;
+    document.getElementById('shift-bar-title').textContent = t.shiftBarTitle;
+    document.getElementById('section-events').textContent = '\u{1F4CB} ' + t.events;
+    document.getElementById('section-ai').textContent = '\u{1F916} ' + t.ai;
+    document.getElementById('ai-summary-title').textContent = t.aiTitle;
+    document.getElementById('ai-loading-text').textContent = t.aiLoading;
+    document.getElementById('ai-summary-placeholder').textContent = t.aiPlaceholder;
+    document.getElementById('btn-ai-text').textContent = t.aiAnalyze;
+    document.getElementById('btn-copy-text').textContent = t.aiCopy;
+    document.getElementById('section-export').textContent = '\u{1F4E4} ' + t.export;
+    document.getElementById('btn-csv').textContent = t.csv;
+    document.getElementById('btn-pdf').textContent = t.pdf;
+    document.getElementById('btn-link').textContent = t.link;
+    document.getElementById('btn-download').textContent = t.download;
+    document.getElementById('section-prev').textContent = '\u{1F4C2} ' + t.prev;
+
+    // ========== Date Setup ==========
+    const today = new Date();
+    const dateStart = document.getElementById('date-start');
+    const dateEnd = document.getElementById('date-end');
+    const dateSep = document.getElementById('date-sep');
+
+    function formatDateInput(d) {
+      return d.toISOString().split('T')[0];
+    }
+
+    dateStart.value = formatDateInput(today);
+
+    function updateDateRange() {
+      if (reportType === 'daily') {
+        dateEnd.style.display = 'none';
+        dateSep.style.display = 'none';
+      } else if (reportType === 'weekly') {
+        dateEnd.style.display = '';
+        dateSep.style.display = '';
+        const end = new Date(dateStart.value);
+        end.setDate(end.getDate() + 6);
+        dateEnd.value = formatDateInput(end);
+      } else {
+        dateEnd.style.display = '';
+        dateSep.style.display = '';
+        const start = new Date(dateStart.value);
+        const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+        dateStart.value = formatDateInput(new Date(start.getFullYear(), start.getMonth(), 1));
+        dateEnd.value = formatDateInput(end);
+      }
+    }
+
+    updateDateRange();
+
+    // Date navigation
+    document.getElementById('date-prev').addEventListener('click', () => {
+      const d = new Date(dateStart.value);
+      if (reportType === 'daily') d.setDate(d.getDate() - 1);
+      else if (reportType === 'weekly') d.setDate(d.getDate() - 7);
+      else d.setMonth(d.getMonth() - 1);
+      dateStart.value = formatDateInput(d);
+      updateDateRange();
+    });
+
+    document.getElementById('date-next').addEventListener('click', () => {
+      const d = new Date(dateStart.value);
+      if (reportType === 'daily') d.setDate(d.getDate() + 1);
+      else if (reportType === 'weekly') d.setDate(d.getDate() + 7);
+      else d.setMonth(d.getMonth() + 1);
+      dateStart.value = formatDateInput(d);
+      updateDateRange();
+    });
+
+    dateStart.addEventListener('change', updateDateRange);
+
+    // Report type tabs
+    document.querySelectorAll('.report-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.report-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        reportType = tab.dataset.type;
+        updateDateRange();
+      });
+    });
+
+    // ========== Machine Table ==========
+    function renderMachineTable() {
+      const tbody = document.getElementById('machine-tbody');
+      tbody.innerHTML = sampleData.machines.map(m => {
+        const qClass = m.quality >= 99 ? 'high' : m.quality >= 97 ? 'medium' : 'low';
+        return `<tr>
+          <td style="font-weight:600;">${m.name}</td>
+          <td>${m.prod}</td>
+          <td>${m.good}</td>
+          <td>${m.defect}</td>
+          <td><span class="quality-badge ${qClass}">${m.quality}%</span></td>
+          <td>${m.uptime}%</td>
+        </tr>`;
+      }).join('');
+
+      // Total row
+      const totalProd = sampleData.machines.reduce((s, m) => s + m.prod, 0);
+      const totalGood = sampleData.machines.reduce((s, m) => s + m.good, 0);
+      const totalDefect = sampleData.machines.reduce((s, m) => s + m.defect, 0);
+      const totalQuality = ((totalGood / totalProd) * 100).toFixed(1);
+      const qClass = totalQuality >= 99 ? 'high' : totalQuality >= 97 ? 'medium' : 'low';
+      tbody.innerHTML += `<tr style="font-weight:700;background:rgba(26,115,232,0.05);">
+        <td>TOTAL</td>
+        <td>${totalProd}</td>
+        <td>${totalGood}</td>
+        <td>${totalDefect}</td>
+        <td><span class="quality-badge ${qClass}">${totalQuality}%</span></td>
+        <td>--</td>
+      </tr>`;
+    }
+
+    renderMachineTable();
+
+    // ========== Production Trend Chart ==========
+    function renderTrendChart() {
+      const data = sampleData.hourly;
+      const maxVal = Math.max(...data.map(d => d.value));
+      const chart = document.getElementById('trend-chart');
+      chart.innerHTML = data.map(d => {
+        const h = (d.value / maxVal) * 100;
+        const color = d.value >= 60 ? 'success' : d.value >= 40 ? 'primary' : 'warning';
+        return `<div class="bar-group">
+          <div class="bar-value">${d.value}</div>
+          <div class="bar ${color}" style="height:${h}%;"></div>
+          <div class="bar-label">${d.hour}:00</div>
+        </div>`;
+      }).join('');
+    }
+
+    renderTrendChart();
+
+    // ========== Quality Donut ==========
+    function renderQualityDonut() {
+      const good = sampleData.good;
+      const defect = sampleData.defect;
+      const rework = 3;
+      const total = good + defect;
+      const goodPct = ((good / total) * 100).toFixed(1);
+      const defectPct = ((defect / total) * 100).toFixed(1);
+      const reworkPct = (((rework) / total) * 100).toFixed(1);
+      const actualDefectPct = (((defect - rework) / total) * 100).toFixed(1);
+
+      const container = document.getElementById('quality-donut-container');
+      container.innerHTML = `
+        <div class="donut" style="background: conic-gradient(
+          var(--success) 0% ${goodPct}%,
+          var(--warning) ${goodPct}% ${parseFloat(goodPct) + parseFloat(reworkPct)}%,
+          var(--danger) ${parseFloat(goodPct) + parseFloat(reworkPct)}% 100%
+        );">
+          <div class="donut-center">
+            <span>${goodPct}%</span>
+            <span class="donut-center-label">${t.goodLabel}</span>
+          </div>
+        </div>
+        <div class="donut-legend">
+          <div class="legend-item">
+            <span class="legend-dot" style="background:var(--success);"></span>
+            ${t.goodLabel}: ${good} (${goodPct}%)
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot" style="background:var(--warning);"></span>
+            ${t.reworkLabel}: ${rework} (${reworkPct}%)
+          </div>
+          <div class="legend-item">
+            <span class="legend-dot" style="background:var(--danger);"></span>
+            ${t.defectLabel}: ${defect - rework} (${actualDefectPct}%)
+          </div>
+        </div>
+      `;
+    }
+
+    renderQualityDonut();
+
+    // ========== Shift Comparison ==========
+    function renderShiftComparison() {
+      const sa = sampleData.shiftA;
+      const sb = sampleData.shiftB;
+
+      const shiftCompare = document.getElementById('shift-compare');
+      shiftCompare.innerHTML = `
+        <div class="shift-card">
+          <div class="shift-card-header">
+            <span class="shift-badge a">A</span> Shift A
+          </div>
+          <div class="shift-stat"><span>${t.shiftProd}</span><span class="shift-stat-value">${sa.prod} ${t.units}</span></div>
+          <div class="shift-stat"><span>${t.shiftGood}</span><span class="shift-stat-value" style="color:var(--success);">${sa.quality}%</span></div>
+          <div class="shift-stat"><span>${t.shiftDefect}</span><span class="shift-stat-value" style="color:var(--danger);">${sa.defect}</span></div>
+          <div class="shift-stat"><span>${t.shiftDowntime}</span><span class="shift-stat-value">${sa.downtime}${t.min}</span></div>
+        </div>
+        <div class="shift-card">
+          <div class="shift-card-header">
+            <span class="shift-badge b">B</span> Shift B
+          </div>
+          <div class="shift-stat"><span>${t.shiftProd}</span><span class="shift-stat-value">${sb.prod} ${t.units}</span></div>
+          <div class="shift-stat"><span>${t.shiftGood}</span><span class="shift-stat-value" style="color:var(--success);">${sb.quality}%</span></div>
+          <div class="shift-stat"><span>${t.shiftDefect}</span><span class="shift-stat-value" style="color:var(--danger);">${sb.defect}</span></div>
+          <div class="shift-stat"><span>${t.shiftDowntime}</span><span class="shift-stat-value">${sb.downtime}${t.min}</span></div>
+        </div>
+      `;
+
+      // Stacked bars
+      const total = sa.prod + sb.prod;
+      const aPct = ((sa.prod / total) * 100).toFixed(0);
+      const bPct = ((sb.prod / total) * 100).toFixed(0);
+
+      const stacked = document.getElementById('shift-stacked');
+      stacked.innerHTML = `
+        <div class="stacked-bar-group">
+          <div class="stacked-bar-label">${t.shiftProd}</div>
+          <div class="stacked-bar-track">
+            <div class="stacked-bar-fill" style="width:${aPct}%;background:var(--primary);">A: ${sa.prod}</div>
+            <div class="stacked-bar-fill" style="width:${bPct}%;background:var(--success);">B: ${sb.prod}</div>
+          </div>
+          <div class="stacked-bar-stats">
+            <span>A: ${aPct}%</span>
+            <span>B: ${bPct}%</span>
+          </div>
+        </div>
+        <div class="stacked-bar-group">
+          <div class="stacked-bar-label">${t.shiftGood}</div>
+          <div class="stacked-bar-track">
+            <div class="stacked-bar-fill" style="width:${sa.quality}%;background:var(--primary);">${sa.quality}%</div>
+          </div>
+          <div class="stacked-bar-track" style="margin-top:4px;">
+            <div class="stacked-bar-fill" style="width:${sb.quality}%;background:var(--success);">${sb.quality}%</div>
+          </div>
+          <div class="stacked-bar-stats">
+            <span>A: ${sa.quality}%</span>
+            <span>B: ${sb.quality}%</span>
+          </div>
+        </div>
+      `;
+    }
+
+    renderShiftComparison();
+
+    // ========== Events Log ==========
+    function renderEvents() {
+      const events = [
+        { icon: '\u{1F527}', type: 'warning', title: t.evtMaint, desc: t.evtMaintDesc, time: '10:25' },
+        { icon: '\u{26A0}\u{FE0F}', type: 'error', title: t.evtDefect, desc: t.evtDefectDesc, time: '14:30' },
+        { icon: '\u{1F3C6}', type: 'success', title: t.evtRecord, desc: t.evtRecordDesc, time: '16:00' },
+        { icon: '\u{1F465}', type: 'info', title: t.evtShift, desc: t.evtShiftDesc, time: '14:00' },
+      ];
+
+      const list = document.getElementById('events-list');
+      list.innerHTML = events.map(e => `
+        <div class="event-item ${e.type}">
+          <span class="event-icon">${e.icon}</span>
+          <div class="event-info">
+            <div class="event-title">${e.title}</div>
+            <div class="event-desc">${e.desc}</div>
+          </div>
+          <span class="event-time">${e.time}</span>
+        </div>
+      `).join('');
+    }
+
+    renderEvents();
+
+    // ========== AI Summary ==========
+    let aiSummaryText = '';
+
+    async function generateAISummary() {
+      const loading = document.getElementById('ai-loading');
+      const placeholder = document.getElementById('ai-summary-placeholder');
+      const content = document.getElementById('ai-summary-content');
+      const copyBtn = document.getElementById('btn-ai-copy');
+
+      placeholder.style.display = 'none';
+      loading.style.display = 'flex';
+      copyBtn.style.display = 'none';
+
+      const prompt = buildAIPrompt();
+
+      try {
+        const res = await fetch('http://localhost:11434/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: aiModel,
+            prompt: prompt,
+            stream: false,
+          }),
+        });
+
+        const data = await res.json();
+        loading.style.display = 'none';
+        aiSummaryText = data.response;
+        content.innerHTML = `<div style="white-space:pre-line;">${escapeHtml(data.response)}</div>`;
+        copyBtn.style.display = '';
+
+        // Auto-save report
+        saveReport();
+      } catch (e) {
+        loading.style.display = 'none';
+        content.innerHTML = `<div style="opacity:0.8;">${t.aiError}</div>`;
+      }
+    }
+
+    function buildAIPrompt() {
+      const langPrompts = {
+        ja: `以下の生産データを分析し、日本語で簡潔なサマリーを作成してください。改善提案も含めてください。`,
+        en: `Analyze the following production data and create a concise summary in English. Include improvement suggestions.`,
+        th: `วิเคราะห์ข้อมูลการผลิตต่อไปนี้และสร้างสรุปที่กระชับเป็นภาษาไทย รวมถึงข้อเสนอแนะการปรับปรุง`,
+        vi: `Phan tich du lieu san xuat sau va tao ban tom tat ngan gon bang tieng Viet. Bao gom de xuat cai tien.`,
+      };
+
+      return `${langPrompts[lang] || langPrompts.ja}
+
+Production Data (${dateStart.value}):
+- Total Production: ${sampleData.production} / Target: ${sampleData.target}
+- Good: ${sampleData.good}, Defect: ${sampleData.defect} (Quality: ${sampleData.qualityRate}%)
+- OEE: ${sampleData.oee}%, Downtime: ${sampleData.downtime} min
+
+Machine Breakdown:
+${sampleData.machines.map(m => `- ${m.name}: ${m.prod} units, Quality ${m.quality}%, Uptime ${m.uptime}%`).join('\n')}
+
+Shift A: ${sampleData.shiftA.prod} units, Quality ${sampleData.shiftA.quality}%, Downtime ${sampleData.shiftA.downtime} min
+Shift B: ${sampleData.shiftB.prod} units, Quality ${sampleData.shiftB.quality}%, Downtime ${sampleData.shiftB.downtime} min
+
+Notable Events:
+- Press machine scheduled maintenance (10:00-10:25)
+- CNC lathe dimensional defect at 14:30 (tool wear)
+- Welding robot: 45 consecutive days uptime record
+- B-shift personnel change due to health reasons`;
+    }
+
+    function copyAISummary() {
+      if (aiSummaryText) {
+        navigator.clipboard.writeText(aiSummaryText);
+        showToast(t.copied);
+      }
+    }
+
+    // ========== Export Functions ==========
+    function exportCSV() {
+      const rows = [
+        [t.machineCol, t.prodCol, t.goodCol, t.defectCol, t.qualityCol, t.uptimeCol],
+        ...sampleData.machines.map(m => [m.name, m.prod, m.good, m.defect, m.quality + '%', m.uptime + '%']),
+        ['TOTAL', sampleData.production, sampleData.good, sampleData.defect, sampleData.qualityRate + '%', '--'],
+        [],
+        ['Shift A', sampleData.shiftA.prod, sampleData.shiftA.good, sampleData.shiftA.defect, sampleData.shiftA.quality + '%', ''],
+        ['Shift B', sampleData.shiftB.prod, sampleData.shiftB.good, sampleData.shiftB.defect, sampleData.shiftB.quality + '%', ''],
+      ];
+
+      const bom = '\uFEFF';
+      const csv = bom + rows.map(r => r.join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `report_${dateStart.value}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(t.downloaded);
+    }
+
+    function copyReportLink() {
+      const url = `${window.location.origin}${window.location.pathname}?date=${dateStart.value}&type=${reportType}`;
+      navigator.clipboard.writeText(url);
+      showToast(t.copied);
+    }
+
+    function downloadReport() {
+      // Generate a text summary for download
+      let text = `${t.title} - ${dateStart.value}\n`;
+      text += '='.repeat(40) + '\n\n';
+      text += `${t.prod}: ${sampleData.production} / ${t.target}: ${sampleData.target}\n`;
+      text += `${t.good}: ${sampleData.good} (${sampleData.qualityRate}%)\n`;
+      text += `${t.defect}: ${sampleData.defect}\n`;
+      text += `${t.oee}: ${sampleData.oee}%\n`;
+      text += `${t.stopTime}: ${sampleData.downtime}${t.min}\n\n`;
+
+      text += `${t.machine}\n`;
+      text += '-'.repeat(30) + '\n';
+      sampleData.machines.forEach(m => {
+        text += `${m.name}: ${m.prod} ${t.units}, ${t.qualityCol} ${m.quality}%, ${t.uptimeCol} ${m.uptime}%\n`;
+      });
+
+      text += `\n${t.shift}\n`;
+      text += '-'.repeat(30) + '\n';
+      text += `Shift A: ${sampleData.shiftA.prod} ${t.units}, ${t.shiftGood} ${sampleData.shiftA.quality}%\n`;
+      text += `Shift B: ${sampleData.shiftB.prod} ${t.units}, ${t.shiftGood} ${sampleData.shiftB.quality}%\n`;
+
+      if (aiSummaryText) {
+        text += `\n${t.ai}\n`;
+        text += '-'.repeat(30) + '\n';
+        text += aiSummaryText + '\n';
+      }
+
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `report_${dateStart.value}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(t.downloaded);
+    }
+
+    // ========== Previous Reports (localStorage) ==========
+    function saveReport() {
+      const reports = JSON.parse(localStorage.getItem('genba-reports') || '[]');
+      const report = {
+        id: Date.now(),
+        date: dateStart.value,
+        type: reportType,
+        production: sampleData.production,
+        quality: sampleData.qualityRate,
+        oee: sampleData.oee,
+        aiSummary: aiSummaryText || null,
+        savedAt: new Date().toISOString(),
+      };
+
+      // Avoid duplicates for same date/type
+      const idx = reports.findIndex(r => r.date === report.date && r.type === report.type);
+      if (idx >= 0) reports[idx] = report;
+      else reports.unshift(report);
+
+      // Keep max 20 reports
+      if (reports.length > 20) reports.length = 20;
+
+      localStorage.setItem('genba-reports', JSON.stringify(reports));
+      showToast(t.saved);
+      renderPreviousReports();
+    }
+
+    function renderPreviousReports() {
+      const reports = JSON.parse(localStorage.getItem('genba-reports') || '[]');
+      const list = document.getElementById('prev-reports-list');
+
+      if (reports.length === 0) {
+        list.innerHTML = `<div class="empty-state">${t.noPrev}</div>`;
+        return;
+      }
+
+      const typeLabels = { daily: t.daily, weekly: t.weekly, monthly: t.monthly };
+      const typeIcons = { daily: '\u{1F4C4}', weekly: '\u{1F4C5}', monthly: '\u{1F4C6}' };
+
+      list.innerHTML = reports.slice(0, 10).map(r => `
+        <div class="prev-report-item" onclick="loadPreviousReport('${r.date}', '${r.type}')">
+          <span class="prev-report-icon">${typeIcons[r.type] || '\u{1F4C4}'}</span>
+          <div class="prev-report-info">
+            <div class="prev-report-title">${typeLabels[r.type] || r.type} - ${r.date}</div>
+            <div class="prev-report-date">${t.prod}: ${r.production} | ${t.qualityCol}: ${r.quality}% | OEE: ${r.oee}%</div>
+          </div>
+          <span class="prev-report-arrow">&#x203A;</span>
+        </div>
+      `).join('');
+    }
+
+    function loadPreviousReport(date, type) {
+      dateStart.value = date;
+      reportType = type;
+      document.querySelectorAll('.report-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.type === type);
+      });
+      updateDateRange();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    renderPreviousReports();
+
+    // ========== Utilities ==========
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // Save current report on page load for history
+    document.getElementById('btn-ai-analyze').addEventListener('click', () => {});
+  </script>
+</body>
+</html>

@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>トラブル履歴 - 現場AIナビ</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/layout.css">
+  <style>
+    .th-page { padding: 16px; }
+
+    /* Stats */
+    .stats-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      overflow-x: auto;
+    }
+
+    .stat-chip {
+      flex: 1;
+      min-width: 0;
+      padding: 12px 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    .stat-chip .stat-num { font-size: 1.4em; font-weight: 700; }
+    .stat-chip .stat-num.red { color: var(--danger); }
+    .stat-chip .stat-num.yellow { color: #e37400; }
+    .stat-chip .stat-num.green { color: var(--success); }
+    .stat-chip .stat-num.blue { color: var(--primary); }
+    .stat-chip .stat-lbl { font-size: 0.7em; color: var(--text-secondary); margin-top: 2px; }
+
+    /* Filters */
+    .filter-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .filter-row input,
+    .filter-row select {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.85em;
+      background: var(--bg-card);
+      color: var(--text);
+    }
+
+    .filter-chips {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .filter-chip {
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--bg-card);
+      cursor: pointer;
+      font-size: 0.78em;
+      white-space: nowrap;
+      color: var(--text);
+    }
+
+    .filter-chip.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    /* Timeline */
+    .timeline {
+      position: relative;
+      padding-left: 24px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 8px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 16px;
+      padding: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .timeline-dot {
+      position: absolute;
+      left: -20px;
+      top: 18px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid var(--bg-card);
+    }
+
+    .timeline-dot.critical { background: var(--danger); }
+    .timeline-dot.warning { background: var(--warning); }
+    .timeline-dot.resolved { background: var(--success); }
+    .timeline-dot.info { background: var(--primary); }
+
+    .tl-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 6px;
+    }
+
+    .tl-title {
+      font-weight: 600;
+      font-size: 0.95em;
+      flex: 1;
+    }
+
+    .tl-badge {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.7em;
+      font-weight: 600;
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+
+    .tl-badge.critical { background: #fce8e6; color: var(--danger); }
+    .tl-badge.warning { background: #fef7e0; color: #e37400; }
+    .tl-badge.resolved { background: #e6f4ea; color: var(--success); }
+    .tl-badge.pending { background: #e8f0fe; color: var(--primary); }
+
+    .tl-meta {
+      display: flex;
+      gap: 12px;
+      font-size: 0.75em;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .tl-desc {
+      font-size: 0.88em;
+      line-height: 1.5;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .tl-solution {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.83em;
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    .tl-solution-label {
+      font-weight: 600;
+      font-size: 0.78em;
+      color: var(--success);
+      margin-bottom: 4px;
+    }
+
+    .tl-tags {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .tl-tag {
+      padding: 2px 8px;
+      background: var(--bg);
+      border-radius: 4px;
+      font-size: 0.7em;
+      color: var(--text-secondary);
+    }
+
+    .tl-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .tl-action-btn {
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      cursor: pointer;
+      font-size: 0.78em;
+      color: var(--text);
+    }
+
+    .tl-action-btn:active { background: var(--border); }
+
+    /* Trend chart */
+    .trend-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .trend-title { font-size: 0.85em; font-weight: 600; margin-bottom: 12px; }
+
+    .trend-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 80px;
+    }
+
+    .trend-bar-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      justify-content: flex-end;
+    }
+
+    .trend-bar {
+      width: 100%;
+      max-width: 24px;
+      border-radius: 3px 3px 0 0;
+    }
+
+    .trend-bar.red { background: var(--danger); }
+    .trend-bar.yellow { background: var(--warning); }
+    .trend-bar.green { background: var(--success); }
+
+    .trend-label {
+      font-size: 0.55em;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .trend-val {
+      font-size: 0.6em;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    /* Category breakdown */
+    .category-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .category-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .cat-icon { font-size: 1.1em; }
+    .cat-name { flex: 1; font-size: 0.85em; }
+
+    .cat-bar-bg {
+      width: 80px;
+      height: 6px;
+      background: var(--bg);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .cat-bar-fill { height: 100%; border-radius: 3px; }
+
+    .cat-count {
+      font-size: 0.8em;
+      font-weight: 600;
+      min-width: 20px;
+      text-align: right;
+    }
+
+    /* Empty state */
+    .empty-state-box {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state-box .empty-icon { font-size: 3em; margin-bottom: 12px; }
+    .empty-state-box p { font-size: 0.9em; }
+
+    /* Load more */
+    .load-more {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9em;
+      color: var(--primary);
+      text-align: center;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="l-header">
+    <div class="l-header__left">
+      <button class="l-header__back" onclick="window.location.href='../index.html'">←</button>
+      <span class="l-header__title" id="page-title">トラブル履歴</span>
+    </div>
+    <div class="l-header__actions">
+      <button id="export-btn" style="background:rgba(255,255,255,0.2);border:none;color:#fff;padding:6px 12px;border-radius:16px;font-size:0.8em;cursor:pointer;">📥 出力</button>
+    </div>
+  </header>
+
+  <div class="th-page l-page">
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-chip">
+        <div class="stat-num blue" id="stat-total">24</div>
+        <div class="stat-lbl" id="stat-total-lbl">総件数</div>
+      </div>
+      <div class="stat-chip">
+        <div class="stat-num red" id="stat-open">3</div>
+        <div class="stat-lbl" id="stat-open-lbl">未解決</div>
+      </div>
+      <div class="stat-chip">
+        <div class="stat-num green" id="stat-resolved">21</div>
+        <div class="stat-lbl" id="stat-resolved-lbl">解決済み</div>
+      </div>
+      <div class="stat-chip">
+        <div class="stat-num yellow" id="stat-avg">42分</div>
+        <div class="stat-lbl" id="stat-avg-lbl">平均復旧</div>
+      </div>
+    </div>
+
+    <!-- Trend -->
+    <div class="trend-card">
+      <div class="trend-title" id="trend-title">📈 月別トラブル件数（過去6ヶ月）</div>
+      <div class="trend-bars" id="trend-chart"></div>
+    </div>
+
+    <!-- Category Breakdown -->
+    <div class="trend-card">
+      <div class="trend-title" id="cat-title">📊 カテゴリ別集計</div>
+      <div class="category-list" id="category-list"></div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <div class="filter-row">
+        <input type="search" id="search-input" placeholder="キーワード検索...">
+        <select id="filter-machine">
+          <option value="">全機械</option>
+        </select>
+      </div>
+      <div class="filter-row">
+        <select id="filter-status">
+          <option value="">全ステータス</option>
+          <option value="resolved">解決済み</option>
+          <option value="pending">未解決</option>
+          <option value="in-progress">対応中</option>
+        </select>
+        <select id="filter-period">
+          <option value="30">過去30日</option>
+          <option value="90">過去90日</option>
+          <option value="180">過去6ヶ月</option>
+          <option value="365">過去1年</option>
+          <option value="">全期間</option>
+        </select>
+      </div>
+      <div class="filter-chips">
+        <button class="filter-chip active" data-cat="">全て</button>
+        <button class="filter-chip" data-cat="breakdown">故障</button>
+        <button class="filter-chip" data-cat="abnormal">異常</button>
+        <button class="filter-chip" data-cat="quality">品質</button>
+        <button class="filter-chip" data-cat="electrical">電気</button>
+        <button class="filter-chip" data-cat="safety">安全</button>
+        <button class="filter-chip" data-cat="leak">漏れ</button>
+      </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="timeline" id="timeline"></div>
+    <button class="load-more" id="load-more">さらに読み込む</button>
+  </div>
+
+  <script>
+    // ========== Init ==========
+    const lang = localStorage.getItem('genba-lang') || 'ja';
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('genba-theme') || 'light');
+    document.documentElement.setAttribute('data-fontsize', localStorage.getItem('genba-fontsize') || 'medium');
+
+    // ========== i18n ==========
+    const texts = {
+      ja: {
+        title: 'トラブル履歴', total: '総件数', open: '未解決', resolved: '解決済み', avg: '平均復旧',
+        trend: '📈 月別トラブル件数（過去6ヶ月）', catTitle: '📊 カテゴリ別集計',
+        search: 'キーワード検索...', allMachines: '全機械', allStatus: '全ステータス',
+        statusResolved: '解決済み', statusPending: '未解決', statusProgress: '対応中',
+        d30: '過去30日', d90: '過去90日', d180: '過去6ヶ月', d365: '過去1年', dAll: '全期間',
+        all: '全て', breakdown: '故障', abnormal: '異常', quality: '品質',
+        electrical: '電気', safety: '安全', leak: '漏れ',
+        solution: '✅ 解決策', askAi: '🤖 AIに聞く', similar: '🔍 類似事例',
+        loadMore: 'さらに読み込む', export: '📥 出力',
+        min: '分', reporter: '報告者', duration: '復旧時間',
+      },
+      en: {
+        title: 'Trouble History', total: 'Total', open: 'Open', resolved: 'Resolved', avg: 'Avg Recovery',
+        trend: '📈 Monthly Troubles (Last 6 months)', catTitle: '📊 Category Breakdown',
+        search: 'Search...', allMachines: 'All Machines', allStatus: 'All Status',
+        statusResolved: 'Resolved', statusPending: 'Pending', statusProgress: 'In Progress',
+        d30: 'Last 30 days', d90: 'Last 90 days', d180: 'Last 6 months', d365: 'Last year', dAll: 'All time',
+        all: 'All', breakdown: 'Breakdown', abnormal: 'Abnormal', quality: 'Quality',
+        electrical: 'Electrical', safety: 'Safety', leak: 'Leak',
+        solution: '✅ Solution', askAi: '🤖 Ask AI', similar: '🔍 Similar',
+        loadMore: 'Load more', export: '📥 Export',
+        min: 'min', reporter: 'Reporter', duration: 'Recovery',
+      },
+      th: {
+        title: 'ประวัติปัญหา', total: 'ทั้งหมด', open: 'ยังไม่แก้', resolved: 'แก้แล้ว', avg: 'เวลาเฉลี่ย',
+        trend: '📈 ปัญหารายเดือน (6 เดือน)', catTitle: '📊 ตามประเภท',
+        search: 'ค้นหา...', allMachines: 'ทุกเครื่อง', allStatus: 'ทุกสถานะ',
+        statusResolved: 'แก้แล้ว', statusPending: 'รอ', statusProgress: 'กำลังดำเนินการ',
+        d30: '30 วัน', d90: '90 วัน', d180: '6 เดือน', d365: '1 ปี', dAll: 'ทั้งหมด',
+        all: 'ทั้งหมด', breakdown: 'เสีย', abnormal: 'ผิดปกติ', quality: 'คุณภาพ',
+        electrical: 'ไฟฟ้า', safety: 'ความปลอดภัย', leak: 'รั่ว',
+        solution: '✅ วิธีแก้', askAi: '🤖 ถาม AI', similar: '🔍 คล้ายกัน',
+        loadMore: 'โหลดเพิ่ม', export: '📥 ส่งออก',
+        min: 'นาที', reporter: 'ผู้แจ้ง', duration: 'เวลาแก้',
+      },
+      vi: {
+        title: 'Lịch sử sự cố', total: 'Tổng', open: 'Chưa xử lý', resolved: 'Đã xử lý', avg: 'TB phục hồi',
+        trend: '📈 Sự cố theo tháng (6 tháng)', catTitle: '📊 Theo loại',
+        search: 'Tìm kiếm...', allMachines: 'Tất cả máy', allStatus: 'Tất cả',
+        statusResolved: 'Đã xử lý', statusPending: 'Chờ', statusProgress: 'Đang xử lý',
+        d30: '30 ngày', d90: '90 ngày', d180: '6 tháng', d365: '1 năm', dAll: 'Tất cả',
+        all: 'Tất cả', breakdown: 'Hỏng', abnormal: 'Bất thường', quality: 'Chất lượng',
+        electrical: 'Điện', safety: 'An toàn', leak: 'Rò rỉ',
+        solution: '✅ Giải pháp', askAi: '🤖 Hỏi AI', similar: '🔍 Tương tự',
+        loadMore: 'Tải thêm', export: '📥 Xuất',
+        min: 'phút', reporter: 'Người báo', duration: 'Thời gian',
+      },
+    };
+
+    const t = texts[lang] || texts.ja;
+
+    // Apply i18n
+    document.getElementById('page-title').textContent = t.title;
+    document.getElementById('stat-total-lbl').textContent = t.total;
+    document.getElementById('stat-open-lbl').textContent = t.open;
+    document.getElementById('stat-resolved-lbl').textContent = t.resolved;
+    document.getElementById('stat-avg-lbl').textContent = t.avg;
+    document.getElementById('trend-title').textContent = t.trend;
+    document.getElementById('cat-title').textContent = t.catTitle;
+    document.getElementById('search-input').placeholder = t.search;
+    document.getElementById('load-more').textContent = t.loadMore;
+    document.getElementById('export-btn').textContent = t.export;
+
+    // ========== Sample Data ==========
+    const troubles = [
+      {
+        id: 1, date: '2026-03-13 14:30', machine: 'CNC旋盤 CK6140', machineId: 'cnc-001',
+        category: 'abnormal', severity: 'warning', status: 'pending',
+        title: { ja: '主軸から異音発生', en: 'Abnormal noise from spindle', th: 'เสียงผิดปกติจากแกนหลัก', vi: 'Tiếng lạ từ trục chính' },
+        desc: { ja: '加工中にキーキーという高音の異音が断続的に発生。回転数2000rpm以上で顕著。', en: 'Intermittent high-pitched squealing during machining. Noticeable above 2000rpm.', th: 'เสียงแหลมเป็นระยะขณะกลึง เด่นชัดที่ 2000rpm ขึ้นไป', vi: 'Tiếng kêu cao ngắt quãng khi gia công. Rõ rệt trên 2000rpm.' },
+        solution: null, reporter: '田中太郎', duration: null,
+        tags: ['spindle', 'bearing', 'noise'],
+      },
+      {
+        id: 2, date: '2026-03-12 09:15', machine: '溶接ロボット RW-200', machineId: 'welder-001',
+        category: 'breakdown', severity: 'critical', status: 'in-progress',
+        title: { ja: 'ワイヤー送給停止', en: 'Wire feed stopped', th: 'การป้อนลวดหยุด', vi: 'Cấp dây dừng' },
+        desc: { ja: '溶接中にワイヤー送給が突然停止。フィーダーモーター音はするがワイヤーが出ない。', en: 'Wire feed suddenly stopped during welding. Feeder motor sound present but no wire output.', th: 'การป้อนลวดหยุดกะทันหันขณะเชื่อม มอเตอร์ทำงานแต่ลวดไม่ออก', vi: 'Cấp dây dừng đột ngột khi hàn. Nghe tiếng motor nhưng không ra dây.' },
+        solution: null, reporter: 'Nguyen Van An', duration: null,
+        tags: ['wire-feed', 'feeder', 'motor'],
+      },
+      {
+        id: 3, date: '2026-03-10 16:45', machine: 'プレス機 AP-100', machineId: 'press-001',
+        category: 'leak', severity: 'warning', status: 'resolved',
+        title: { ja: '油圧シリンダーから油漏れ', en: 'Hydraulic cylinder oil leak', th: 'น้ำมันรั่วจากกระบอกไฮดรอลิก', vi: 'Rò rỉ dầu xy lanh thủy lực' },
+        desc: { ja: 'メインシリンダー下部からの微量の油漏れを発見。運転に支障はないが要経過観察。', en: 'Minor oil leak found at bottom of main cylinder. No operational impact but needs monitoring.', th: 'พบน้ำมันรั่วเล็กน้อยที่ด้านล่างกระบอกหลัก ไม่กระทบการทำงานแต่ต้องติดตาม', vi: 'Phát hiện rò rỉ dầu nhỏ ở đáy xy lanh chính. Không ảnh hưởng vận hành nhưng cần theo dõi.' },
+        solution: { ja: 'Oリング交換で油漏れ停止を確認。シール部品を予備在庫に追加。', en: 'O-ring replacement stopped the leak. Added seal parts to spare inventory.', th: 'เปลี่ยน O-ring แก้ไขการรั่ว เพิ่มชิ้นส่วนซีลในสต็อกอะไหล่', vi: 'Thay O-ring đã khắc phục rò rỉ. Đã thêm phụ tùng seal vào kho dự phòng.' },
+        reporter: '山本修', duration: 35,
+        tags: ['hydraulic', 'seal', 'o-ring'],
+      },
+      {
+        id: 4, date: '2026-03-08 11:20', machine: 'CNC旋盤 CK6140', machineId: 'cnc-001',
+        category: 'quality', severity: 'warning', status: 'resolved',
+        title: { ja: '加工寸法がプラス側に外れ', en: 'Machining dimensions out of tolerance (+)', th: 'ขนาดชิ้นงานเกินค่าพิกัดด้านบวก', vi: 'Kích thước gia công vượt dung sai (+)' },
+        desc: { ja: '外径加工で+0.05mmの寸法外れが3個連続で発生。', en: '3 consecutive parts with +0.05mm oversize on outer diameter.', th: '3 ชิ้นติดต่อกันมีขนาดเกิน +0.05mm ที่เส้นผ่านศูนย์กลางนอก', vi: '3 chi tiết liên tiếp vượt +0.05mm ở đường kính ngoài.' },
+        solution: { ja: 'ツールオフセット値を再測定・修正。工具摩耗が原因。補正値をD01=-0.03に変更。', en: 'Re-measured and corrected tool offset. Caused by tool wear. Changed compensation to D01=-0.03.', th: 'วัดใหม่และแก้ไขค่าชดเชยเครื่องมือ สาเหตุจากการสึกหรอ เปลี่ยนค่าชดเชยเป็น D01=-0.03', vi: 'Đo lại và sửa offset dao. Nguyên nhân do mòn dao. Đổi bù D01=-0.03.' },
+        reporter: 'Somchai Prasert', duration: 25,
+        tags: ['tolerance', 'tool-offset', 'wear'],
+      },
+      {
+        id: 5, date: '2026-03-05 08:30', machine: 'CNC旋盤 CK6140', machineId: 'cnc-001',
+        category: 'breakdown', severity: 'critical', status: 'resolved',
+        title: { ja: 'アラーム SV0401 サーボ異常', en: 'Alarm SV0401 Servo Error', th: 'เตือน SV0401 Servo ผิดปกติ', vi: 'Báo lỗi SV0401 Servo' },
+        desc: { ja: '起動時にSV0401アラーム発生。X軸サーボモーターが動作しない。', en: 'SV0401 alarm on startup. X-axis servo motor not responding.', th: 'เกิดเตือน SV0401 ขณะเริ่มเครื่อง มอเตอร์เซอร์โว X ไม่ตอบสนอง', vi: 'Lỗi SV0401 khi khởi động. Motor servo trục X không phản hồi.' },
+        solution: { ja: 'サーボアンプのコネクタ接触不良を発見。コネクタ清掃・再接続で復旧。', en: 'Found loose connector on servo amplifier. Cleaned and reconnected to fix.', th: 'พบขั้วต่อหลวมที่แอมป์เซอร์โว ทำความสะอาดและเชื่อมต่อใหม่', vi: 'Phát hiện lỏng đầu nối ở servo amp. Vệ sinh và kết nối lại.' },
+        reporter: '山本修', duration: 65,
+        tags: ['servo', 'alarm', 'connector'],
+      },
+      {
+        id: 6, date: '2026-03-02 13:00', machine: 'プレス機 AP-100', machineId: 'press-001',
+        category: 'safety', severity: 'critical', status: 'resolved',
+        title: { ja: '安全光線センサー誤検知', en: 'Safety light curtain false trigger', th: 'เซ็นเซอร์แสงนิรภัยทำงานผิดพลาด', vi: 'Cảm biến an toàn báo sai' },
+        desc: { ja: '安全光線センサーが頻繁に誤検知し、プレスが停止する。障害物なし。', en: 'Safety light curtain triggering frequently without obstacles, stopping the press.', th: 'เซ็นเซอร์แสงนิรภัยทำงานบ่อยโดยไม่มีสิ่งกีดขวาง ทำให้เครื่องหยุด', vi: 'Cảm biến an toàn kích hoạt liên tục dù không có vật cản, dừng máy.' },
+        solution: { ja: 'センサーレンズの汚れを清掃。受光部の光軸ずれを再調整して復旧。', en: 'Cleaned sensor lens. Realigned receiver optical axis to fix.', th: 'ทำความสะอาดเลนส์เซ็นเซอร์ ปรับแกนแสงตัวรับใหม่', vi: 'Vệ sinh ống kính cảm biến. Căn chỉnh lại trục quang bộ thu.' },
+        reporter: '佐藤健一', duration: 40,
+        tags: ['safety-curtain', 'sensor', 'alignment'],
+      },
+      {
+        id: 7, date: '2026-02-28 10:00', machine: '溶接ロボット RW-200', machineId: 'welder-001',
+        category: 'quality', severity: 'warning', status: 'resolved',
+        title: { ja: '溶接ビードにブローホール発生', en: 'Blowholes in weld bead', th: 'มีรูพรุนในแนวเชื่อม', vi: 'Lỗ khí trong mối hàn' },
+        desc: { ja: '溶接ビードに直径1-2mmのブローホールが複数発生。ガスシールド不良の疑い。', en: 'Multiple 1-2mm blowholes in weld bead. Suspected gas shielding issue.', th: 'รูพรุน 1-2mm หลายจุดในแนวเชื่อม สงสัยปัญหาแก๊สป้องกัน', vi: 'Nhiều lỗ khí 1-2mm trong mối hàn. Nghi vấn khí bảo vệ.' },
+        solution: { ja: 'ガスノズルの詰まりを清掃。ガス流量を15L/minから18L/minに調整。', en: 'Cleaned gas nozzle blockage. Adjusted gas flow from 15L/min to 18L/min.', th: 'ทำความสะอาดหัวฉีดแก๊สอุดตัน ปรับอัตราแก๊สจาก 15L/min เป็น 18L/min', vi: 'Thông tắc đầu phun khí. Điều chỉnh lưu lượng khí từ 15 lên 18L/phút.' },
+        reporter: '山本修', duration: 30,
+        tags: ['blowhole', 'gas-shield', 'nozzle'],
+      },
+      {
+        id: 8, date: '2026-02-25 15:30', machine: 'CNC旋盤 CK6140', machineId: 'cnc-001',
+        category: 'electrical', severity: 'warning', status: 'resolved',
+        title: { ja: '操作パネル液晶画面チラつき', en: 'Control panel LCD flickering', th: 'หน้าจอแผงควบคุมกะพริบ', vi: 'Màn hình bảng điều khiển nhấp nháy' },
+        desc: { ja: '操作パネルの液晶画面が不定期にチラつく。操作自体は可能。', en: 'Control panel LCD flickers intermittently. Operations still functional.', th: 'หน้าจอ LCD แผงควบคุมกะพริบเป็นระยะ การทำงานยังปกติ', vi: 'Màn hình LCD bảng điều khiển nhấp nháy không đều. Vận hành vẫn bình thường.' },
+        solution: { ja: 'LCD接続ケーブルの接触不良。ケーブル交換で改善。', en: 'Loose LCD cable connection. Replaced cable to fix.', th: 'สายเชื่อมต่อ LCD หลวม เปลี่ยนสายใหม่', vi: 'Lỏng cáp kết nối LCD. Thay cáp mới.' },
+        reporter: '田中太郎', duration: 20,
+        tags: ['lcd', 'cable', 'panel'],
+      },
+    ];
+
+    // ========== Render ==========
+    let displayCount = 5;
+    let activeCategory = '';
+
+    function renderTimeline() {
+      const timeline = document.getElementById('timeline');
+      let filtered = [...troubles];
+
+      // Filter: search
+      const search = document.getElementById('search-input').value.toLowerCase();
+      if (search) {
+        filtered = filtered.filter(tr =>
+          (tr.title[lang] || tr.title.ja).toLowerCase().includes(search) ||
+          (tr.desc[lang] || tr.desc.ja).toLowerCase().includes(search) ||
+          tr.machine.toLowerCase().includes(search) ||
+          tr.tags.some(tag => tag.includes(search))
+        );
+      }
+
+      // Filter: machine
+      const machineFilter = document.getElementById('filter-machine').value;
+      if (machineFilter) filtered = filtered.filter(tr => tr.machineId === machineFilter);
+
+      // Filter: status
+      const statusFilter = document.getElementById('filter-status').value;
+      if (statusFilter) filtered = filtered.filter(tr => tr.status === statusFilter);
+
+      // Filter: category
+      if (activeCategory) filtered = filtered.filter(tr => tr.category === activeCategory);
+
+      // Filter: period
+      const period = document.getElementById('filter-period').value;
+      if (period) {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - parseInt(period));
+        filtered = filtered.filter(tr => new Date(tr.date) >= cutoff);
+      }
+
+      const showing = filtered.slice(0, displayCount);
+
+      const statusLabels = {
+        resolved: t.resolved, pending: t.open, 'in-progress': t.statusProgress || '対応中',
+      };
+
+      const sevClass = { critical: 'critical', warning: 'warning', info: 'info' };
+
+      timeline.innerHTML = showing.length === 0
+        ? `<div class="empty-state-box"><div class="empty-icon">🔍</div><p>${t.search}</p></div>`
+        : showing.map(tr => {
+          const title = tr.title[lang] || tr.title.ja;
+          const desc = tr.desc[lang] || tr.desc.ja;
+          const sol = tr.solution ? (tr.solution[lang] || tr.solution.ja) : null;
+          const dotClass = tr.status === 'resolved' ? 'resolved' : sevClass[tr.severity] || 'info';
+          const badgeClass = tr.status === 'resolved' ? 'resolved' : tr.status === 'in-progress' ? 'pending' : 'critical';
+
+          return `
+            <div class="timeline-item">
+              <div class="timeline-dot ${dotClass}"></div>
+              <div class="tl-header">
+                <div class="tl-title">${title}</div>
+                <span class="tl-badge ${badgeClass}">${statusLabels[tr.status] || tr.status}</span>
+              </div>
+              <div class="tl-meta">
+                <span>🏭 ${tr.machine}</span>
+                <span>📅 ${tr.date}</span>
+                ${tr.duration ? `<span>⏱ ${tr.duration}${t.min}</span>` : ''}
+              </div>
+              <div class="tl-desc">${desc}</div>
+              ${sol ? `
+                <div class="tl-solution">
+                  <div class="tl-solution-label">${t.solution}</div>
+                  ${sol}
+                </div>
+              ` : ''}
+              <div class="tl-tags">${tr.tags.map(tag => `<span class="tl-tag">#${tag}</span>`).join('')}</div>
+              <div class="tl-actions">
+                <button class="tl-action-btn" onclick="window.location.href='chat.html'">${t.askAi}</button>
+                <button class="tl-action-btn" onclick="findSimilar('${tr.tags[0]}')">${t.similar}</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+      document.getElementById('load-more').style.display = showing.length < filtered.length ? 'block' : 'none';
+    }
+
+    function findSimilar(tag) {
+      document.getElementById('search-input').value = tag;
+      renderTimeline();
+    }
+
+    // ========== Trend Chart ==========
+    const trendData = [
+      { label: '10月', value: 5 },
+      { label: '11月', value: 8 },
+      { label: '12月', value: 3 },
+      { label: '1月', value: 6 },
+      { label: '2月', value: 4 },
+      { label: '3月', value: 3 },
+    ];
+
+    const maxTrend = Math.max(...trendData.map(d => d.value));
+    document.getElementById('trend-chart').innerHTML = trendData.map(d => {
+      const h = (d.value / maxTrend) * 100;
+      const color = d.value >= 7 ? 'red' : d.value >= 5 ? 'yellow' : 'green';
+      return `
+        <div class="trend-bar-group">
+          <div class="trend-val">${d.value}</div>
+          <div class="trend-bar ${color}" style="height:${h}%;"></div>
+          <div class="trend-label">${d.label}</div>
+        </div>
+      `;
+    }).join('');
+
+    // ========== Category Chart ==========
+    const categories = [
+      { id: 'breakdown', icon: '🔴', name: { ja: '故障・停止', en: 'Breakdown', th: 'เครื่องเสีย', vi: 'Hỏng máy' }, count: 6, color: '#d93025' },
+      { id: 'abnormal', icon: '🟡', name: { ja: '異音・異常', en: 'Abnormal', th: 'ผิดปกติ', vi: 'Bất thường' }, count: 5, color: '#f9ab00' },
+      { id: 'quality', icon: '🔵', name: { ja: '品質不良', en: 'Quality', th: 'คุณภาพ', vi: 'Chất lượng' }, count: 4, color: '#1a73e8' },
+      { id: 'electrical', icon: '⚡', name: { ja: '電気系統', en: 'Electrical', th: 'ไฟฟ้า', vi: 'Điện' }, count: 3, color: '#9334e6' },
+      { id: 'safety', icon: '🛡', name: { ja: '安全装置', en: 'Safety', th: 'ความปลอดภัย', vi: 'An toàn' }, count: 3, color: '#1e8e3e' },
+      { id: 'leak', icon: '💧', name: { ja: '漏れ', en: 'Leak', th: 'รั่ว', vi: 'Rò rỉ' }, count: 3, color: '#00acc1' },
+    ];
+
+    const maxCat = Math.max(...categories.map(c => c.count));
+    document.getElementById('category-list').innerHTML = categories.map(c => `
+      <div class="category-row" style="cursor:pointer;" onclick="filterByCategory('${c.id}')">
+        <span class="cat-icon">${c.icon}</span>
+        <span class="cat-name">${c.name[lang] || c.name.ja}</span>
+        <div class="cat-bar-bg">
+          <div class="cat-bar-fill" style="width:${(c.count/maxCat)*100}%;background:${c.color};"></div>
+        </div>
+        <span class="cat-count">${c.count}</span>
+      </div>
+    `).join('');
+
+    function filterByCategory(cat) {
+      activeCategory = activeCategory === cat ? '' : cat;
+      document.querySelectorAll('.filter-chip').forEach(c => {
+        c.classList.toggle('active', c.dataset.cat === activeCategory || (activeCategory === '' && c.dataset.cat === ''));
+      });
+      renderTimeline();
+    }
+
+    // ========== Machines for filter ==========
+    fetch('../../data/machines.json')
+      .then(r => r.json())
+      .then(data => {
+        const select = document.getElementById('filter-machine');
+        data.machines.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = `${m.icon} ${m.name[lang] || m.name.en}`;
+          select.appendChild(opt);
+        });
+      })
+      .catch(() => {});
+
+    // ========== Events ==========
+    document.getElementById('search-input').addEventListener('input', renderTimeline);
+    document.getElementById('filter-machine').addEventListener('change', renderTimeline);
+    document.getElementById('filter-status').addEventListener('change', renderTimeline);
+    document.getElementById('filter-period').addEventListener('change', renderTimeline);
+
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+      chip.addEventListener('click', () => filterByCategory(chip.dataset.cat));
+    });
+
+    document.getElementById('load-more').addEventListener('click', () => {
+      displayCount += 5;
+      renderTimeline();
+    });
+
+    // Export
+    document.getElementById('export-btn').addEventListener('click', () => {
+      let csv = 'Date,Machine,Category,Severity,Status,Title,Description,Solution,Reporter,Duration(min)\n';
+      troubles.forEach(tr => {
+        csv += `"${tr.date}","${tr.machine}","${tr.category}","${tr.severity}","${tr.status}","${tr.title[lang]||tr.title.ja}","${(tr.desc[lang]||tr.desc.ja).replace(/"/g,'""')}","${tr.solution?(tr.solution[lang]||tr.solution.ja).replace(/"/g,'""'):''}","${tr.reporter}",${tr.duration||''}\n`;
+      });
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `trouble-history-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+    });
+
+    // Init render
+    renderTimeline();
+  </script>
+</body>
+</html>

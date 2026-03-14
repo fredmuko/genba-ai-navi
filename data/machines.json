@@ -1,0 +1,111 @@
+{
+  "machines": [
+    {
+      "id": "cnc-001",
+      "icon": "🏭",
+      "status": "running",
+      "name": { "ja": "CNC旋盤 CK6140", "en": "CNC Lathe CK6140", "th": "เครื่องกลึง CNC CK6140", "vi": "Máy tiện CNC CK6140" },
+      "desc": { "ja": "金属加工用CNC旋盤", "en": "CNC lathe for metalworking", "th": "เครื่องกลึง CNC สำหรับงานโลหะ", "vi": "Máy tiện CNC gia công kim loại" },
+      "specs": {
+        "model": "CK6140",
+        "manufacturer": "FANUC",
+        "installed": "2020-04",
+        "max_diameter": "φ400mm",
+        "max_length": "1000mm",
+        "spindle_speed": "45-4500 rpm",
+        "motor": "7.5kW",
+        "controller": "FANUC 0i-TF Plus",
+        "weight": "3200 kg",
+        "power": "15 kVA"
+      },
+      "steps": {
+        "ja": ["電源スイッチをONにする", "原点復帰ボタンを押す（X軸→Z軸の順）", "ワークをチャックに取り付ける", "プログラムを選択して確認する", "ドアを閉めて起動ボタンを押す"],
+        "en": ["Turn on the power switch", "Press the home return button (X-axis then Z-axis)", "Mount the workpiece on the chuck", "Select and verify the program", "Close the door and press the start button"],
+        "th": ["เปิดสวิตช์ไฟ", "กดปุ่มกลับตำแหน่งเดิม (แกน X แล้วแกน Z)", "ติดตั้งชิ้นงานบนหัวจับ", "เลือกและตรวจสอบโปรแกรม", "ปิดประตูและกดปุ่มเริ่ม"],
+        "vi": ["Bật công tắc nguồn", "Nhấn nút về gốc (trục X rồi trục Z)", "Gắn phôi vào mâm cặp", "Chọn và kiểm tra chương trình", "Đóng cửa và nhấn nút khởi động"]
+      },
+      "checklist": {
+        "ja": ["切削油の量を確認", "チャックの締め付け確認", "安全カバーの確認", "異音・異臭がないか確認", "非常停止ボタンの動作確認", "切粉の清掃", "工具の摩耗チェック", "原点復帰の実施"],
+        "en": ["Check cutting oil level", "Verify chuck tightness", "Check safety cover", "Check for unusual sounds/smells", "Test emergency stop button", "Clean chips", "Check tool wear", "Perform home return"],
+        "th": ["ตรวจสอบระดับน้ำมันตัด", "ตรวจสอบการขันหัวจับ", "ตรวจสอบฝาครอบนิรภัย", "ตรวจสอบเสียง/กลิ่นผิดปกติ", "ทดสอบปุ่มหยุดฉุกเฉิน", "ทำความสะอาดเศษ", "ตรวจสอบการสึกหรอของเครื่องมือ", "กลับตำแหน่งเดิม"],
+        "vi": ["Kiểm tra mức dầu cắt", "Kiểm tra lực kẹp mâm cặp", "Kiểm tra nắp an toàn", "Kiểm tra tiếng/mùi bất thường", "Kiểm tra nút dừng khẩn cấp", "Dọn phoi", "Kiểm tra mòn dao", "Thực hiện về gốc"]
+      },
+      "history": [
+        { "date": "2026-03-10", "type": "maintenance", "text": { "ja": "定期メンテナンス（切削油交換、ベルト点検）", "en": "Regular maintenance (oil change, belt inspection)" } },
+        { "date": "2026-03-05", "type": "repair", "text": { "ja": "異音発生→ベアリング交換で解決", "en": "Strange noise → fixed by bearing replacement" } },
+        { "date": "2026-02-20", "type": "adjustment", "text": { "ja": "加工精度低下→ツールオフセット再設定", "en": "Precision drop → tool offset recalibration" } },
+        { "date": "2026-01-15", "type": "inspection", "text": { "ja": "年次点検（メーカー）完了", "en": "Annual inspection (manufacturer) completed" } }
+      ]
+    },
+    {
+      "id": "press-001",
+      "icon": "🔨",
+      "status": "running",
+      "name": { "ja": "プレス機 AP-100", "en": "Press Machine AP-100", "th": "เครื่องกด AP-100", "vi": "Máy dập AP-100" },
+      "desc": { "ja": "100トン油圧プレス", "en": "100-ton hydraulic press", "th": "เครื่องกดไฮดรอลิก 100 ตัน", "vi": "Máy ép thủy lực 100 tấn" },
+      "specs": {
+        "model": "AP-100",
+        "manufacturer": "AIDA",
+        "installed": "2019-08",
+        "capacity": "100 ton",
+        "stroke": "200mm",
+        "bed_size": "600x400mm",
+        "motor": "5.5kW",
+        "controller": "AIDA NC-1",
+        "weight": "4500 kg",
+        "power": "12 kVA"
+      },
+      "steps": {
+        "ja": ["安全柵が閉まっていることを確認", "油圧ポンプを起動する", "金型をセットする", "材料をセットし両手操作ボタンを同時押し", "完了後、油圧ポンプを停止する"],
+        "en": ["Verify safety fence is closed", "Start the hydraulic pump", "Set the die", "Place material and press both-hand buttons simultaneously", "After completion, stop the hydraulic pump"],
+        "th": ["ตรวจสอบว่ารั้วนิรภัยปิดแล้ว", "เริ่มปั๊มไฮดรอลิก", "ติดตั้งแม่พิมพ์", "วางวัสดุและกดปุ่มทั้งสองมือพร้อมกัน", "หลังเสร็จ หยุดปั๊มไฮดรอลิก"],
+        "vi": ["Kiểm tra hàng rào an toàn đã đóng", "Khởi động bơm thủy lực", "Lắp khuôn", "Đặt vật liệu và nhấn đồng thời hai nút tay", "Sau khi hoàn thành, tắt bơm thủy lực"]
+      },
+      "checklist": {
+        "ja": ["油圧オイルの量を確認", "安全柵の動作確認", "両手操作ボタンのテスト", "金型の傷・変形チェック", "非常停止ボタンの動作確認", "油漏れがないか確認"],
+        "en": ["Check hydraulic oil level", "Test safety fence", "Test both-hand buttons", "Check die for damage", "Test emergency stop", "Check for oil leaks"],
+        "th": ["ตรวจสอบระดับน้ำมันไฮดรอลิก", "ทดสอบรั้วนิรภัย", "ทดสอบปุ่มสองมือ", "ตรวจสอบแม่พิมพ์", "ทดสอบปุ่มหยุดฉุกเฉิน", "ตรวจสอบการรั่วของน้ำมัน"],
+        "vi": ["Kiểm tra mức dầu thủy lực", "Kiểm tra hàng rào an toàn", "Kiểm tra nút hai tay", "Kiểm tra khuôn", "Kiểm tra nút dừng khẩn cấp", "Kiểm tra rò rỉ dầu"]
+      },
+      "history": [
+        { "date": "2026-03-08", "type": "maintenance", "text": { "ja": "油圧オイル交換", "en": "Hydraulic oil change" } },
+        { "date": "2026-02-15", "type": "repair", "text": { "ja": "油漏れ修理（シール交換）", "en": "Oil leak repair (seal replacement)" } }
+      ]
+    },
+    {
+      "id": "welder-001",
+      "icon": "⚡",
+      "status": "maintenance",
+      "name": { "ja": "溶接ロボット RW-200", "en": "Welding Robot RW-200", "th": "หุ่นยนต์เชื่อม RW-200", "vi": "Robot hàn RW-200" },
+      "desc": { "ja": "自動アーク溶接ロボット", "en": "Automatic arc welding robot", "th": "หุ่นยนต์เชื่อมอาร์กอัตโนมัติ", "vi": "Robot hàn hồ quang tự động" },
+      "specs": {
+        "model": "RW-200",
+        "manufacturer": "FANUC",
+        "installed": "2021-03",
+        "axes": "6-axis",
+        "reach": "1400mm",
+        "payload": "6 kg",
+        "welding_type": "MIG/MAG",
+        "controller": "FANUC R-30iB Plus",
+        "weight": "560 kg",
+        "power": "8 kVA"
+      },
+      "steps": {
+        "ja": ["溶接ガスのバルブを開く", "ロボットコントローラの電源を入れる", "ティーチングペンダントで動作確認", "ワークを治具にセットする", "安全エリアから退避し起動する"],
+        "en": ["Open the welding gas valve", "Turn on the robot controller", "Verify operation with teaching pendant", "Set the workpiece on the jig", "Evacuate safety area and start"],
+        "th": ["เปิดวาล์วแก๊สเชื่อม", "เปิดตัวควบคุมหุ่นยนต์", "ตรวจสอบการทำงานด้วยจี้สอน", "วางชิ้นงานบนจิ๊ก", "ออกจากพื้นที่ปลอดภัยและเริ่ม"],
+        "vi": ["Mở van khí hàn", "Bật bộ điều khiển robot", "Kiểm tra hoạt động bằng bảng dạy", "Đặt phôi lên đồ gá", "Rời khỏi vùng an toàn và khởi động"]
+      },
+      "checklist": {
+        "ja": ["ガスボンベの残量確認", "溶接ワイヤーの送給確認", "トーチの摩耗チェック", "安全エリアセンサーの動作確認", "アース接続の確認", "ロボット動作範囲内に障害物がないか確認"],
+        "en": ["Check gas cylinder level", "Verify wire feed", "Check torch wear", "Test safety area sensors", "Verify ground connection", "Check for obstacles in robot range"],
+        "th": ["ตรวจสอบระดับแก๊ส", "ตรวจสอบการป้อนลวด", "ตรวจสอบหัวเชื่อม", "ทดสอบเซ็นเซอร์พื้นที่ปลอดภัย", "ตรวจสอบการต่อสายดิน", "ตรวจสอบสิ่งกีดขวาง"],
+        "vi": ["Kiểm tra mức khí", "Kiểm tra cấp dây", "Kiểm tra đầu hàn", "Kiểm tra cảm biến vùng an toàn", "Kiểm tra nối đất", "Kiểm tra vật cản trong tầm robot"]
+      },
+      "history": [
+        { "date": "2026-03-12", "type": "maintenance", "text": { "ja": "トーチ交換・ワイヤー補充", "en": "Torch replacement & wire refill" } },
+        { "date": "2026-02-28", "type": "repair", "text": { "ja": "ワイヤー送給不良→フィーダーローラー交換", "en": "Wire feed issue → feeder roller replacement" } }
+      ]
+    }
+  ]
+}
