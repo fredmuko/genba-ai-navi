@@ -226,6 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderMachines();
   renderSafetyDocs();
   renderRecentHistory();
+  setupFeatureRequest();
 });
 
 // ========== i18n ==========
@@ -289,15 +290,16 @@ function setupLanguageModal() {
   const btn = document.getElementById('lang-btn');
   const closeBtn = document.getElementById('lang-modal-close');
 
-  btn.addEventListener('click', () => modal.classList.remove('hidden'));
-  closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
+  btn.addEventListener('click', () => { modal.classList.remove('hidden'); enableFocusTrap(modal); });
+  closeBtn.addEventListener('click', () => { disableFocusTrap(modal); modal.classList.add('hidden'); });
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.classList.add('hidden');
+    if (e.target === modal) { disableFocusTrap(modal); modal.classList.add('hidden'); }
   });
 
   document.querySelectorAll('.lang-option').forEach((opt) => {
     opt.addEventListener('click', () => {
       loadTranslations(opt.dataset.lang);
+      disableFocusTrap(modal);
       modal.classList.add('hidden');
     });
   });
@@ -631,4 +633,134 @@ function renderRecentHistory() {
   list.innerHTML = state.recentHistory
     .map((h) => `<li>${icons[h.type] || '📌'} ${h.text} <span style="float:right;color:var(--text-secondary);font-size:0.8em">${h.time}</span></li>`)
     .join('');
+}
+
+// ========== Focus Trap Utility ==========
+var _activeFocusTrap = null;
+
+function enableFocusTrap(modalElement) {
+  var focusableSelector = 'a[href], button:not([disabled]), textarea, input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  var focusableElements = modalElement.querySelectorAll(focusableSelector);
+  if (focusableElements.length === 0) return;
+  var firstEl = focusableElements[0];
+  var lastEl = focusableElements[focusableElements.length - 1];
+  firstEl.focus();
+
+  _activeFocusTrap = function(e) {
+    if (e.key !== 'Tab') return;
+    if (e.shiftKey) {
+      if (document.activeElement === firstEl) {
+        e.preventDefault();
+        lastEl.focus();
+      }
+    } else {
+      if (document.activeElement === lastEl) {
+        e.preventDefault();
+        firstEl.focus();
+      }
+    }
+  };
+  modalElement.addEventListener('keydown', _activeFocusTrap);
+}
+
+function disableFocusTrap(modalElement) {
+  if (_activeFocusTrap) {
+    modalElement.removeEventListener('keydown', _activeFocusTrap);
+    _activeFocusTrap = null;
+  }
+}
+
+// ========== Feature Request ==========
+function openFeatureRequestModal() {
+  var modal = document.getElementById('feature-request-modal');
+  modal.classList.remove('hidden');
+  // Re-apply translations for modal content
+  applyTranslations();
+  enableFocusTrap(modal);
+}
+
+function closeFeatureRequestModal() {
+  var modal = document.getElementById('feature-request-modal');
+  disableFocusTrap(modal);
+  modal.classList.add('hidden');
+  // Reset form
+  document.getElementById('feature-request-form').reset();
+}
+
+function setupFeatureRequest() {
+  var modal = document.getElementById('feature-request-modal');
+  var form = document.getElementById('feature-request-form');
+  var cancelBtn = document.getElementById('fr-cancel-btn');
+
+  // Close on cancel
+  cancelBtn.addEventListener('click', closeFeatureRequestModal);
+
+  // Close on overlay click
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) closeFeatureRequestModal();
+  });
+
+  // Submit
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    submitFeatureRequest();
+  });
+}
+
+async function submitFeatureRequest() {
+  var submitBtn = document.getElementById('fr-submit-btn');
+  var title = document.getElementById('fr-title').value.trim();
+  var description = document.getElementById('fr-description').value.trim();
+  var priority = document.getElementById('fr-priority').value;
+  var attachmentsInput = document.getElementById('fr-attachments');
+
+  if (!title || !description) return;
+
+  // Disable submit button
+  submitBtn.disabled = true;
+
+  // Get session info
+  var session = JSON.parse(localStorage.getItem('genba-session') || 'null');
+
+  // Build FormData for multipart upload (supports file attachments)
+  var formData = new FormData();
+  formData.append('title', title);
+  formData.append('description', description);
+  formData.append('priority', priority);
+  formData.append('source', 'genba-ai-navi');
+  formData.append('contextUrl', window.location.href);
+
+  if (session) {
+    formData.append('requesterExternalId', session.id || '');
+    formData.append('requesterName', session.name || '');
+  }
+
+  // Attach files
+  var files = attachmentsInput.files;
+  for (var i = 0; i < files.length; i++) {
+    formData.append('attachments', files[i]);
+  }
+
+  try {
+    var res = await fetch(FR_CONFIG.apiUrl, {
+      method: 'POST',
+      headers: {
+        'X-Api-Key': FR_CONFIG.apiKey,
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      throw new Error('HTTP ' + res.status);
+    }
+
+    var t = state.translations.feature_request || {};
+    showToast(t.success || '送信しました', { type: 'success' });
+    closeFeatureRequestModal();
+  } catch (e) {
+    var t = state.translations.feature_request || {};
+    showToast((t.error || '送信に失敗しました') + ': ' + e.message, { type: 'error', duration: 5000 });
+  } finally {
+    submitBtn.disabled = false;
+  }
 }

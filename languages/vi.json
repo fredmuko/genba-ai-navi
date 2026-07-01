@@ -74,5 +74,22 @@
     "stop": "Dừng nhập giọng nói",
     "read_aloud": "Đọc to",
     "not_supported": "Trình duyệt của bạn không hỗ trợ tính năng giọng nói"
+  },
+  "feature_request": {
+    "title": "Yêu cầu cải tiến",
+    "field_title": "Tiêu đề",
+    "field_title_placeholder": "Mô tả ngắn gọn cải tiến mong muốn...",
+    "field_desc": "Chi tiết",
+    "field_desc_placeholder": "Vui lòng cung cấp chi tiết cụ thể...",
+    "field_priority": "Mức ưu tiên",
+    "priority_low": "Thấp",
+    "priority_medium": "Trung bình",
+    "priority_high": "Cao",
+    "field_attachments": "Tệp đính kèm",
+    "field_attachments_hint": "Chọn hình ảnh hoặc video (cho phép nhiều tệp)",
+    "submit": "Gửi",
+    "success": "Đã gửi thành công",
+    "error": "Gửi thất bại",
+    "nav_label": "Yêu cầu cải tiến"
   }
 }

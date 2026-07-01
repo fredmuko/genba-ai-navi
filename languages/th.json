@@ -74,5 +74,22 @@
     "stop": "หยุดป้อนเสียง",
     "read_aloud": "อ่านออกเสียง",
     "not_supported": "เบราว์เซอร์ของคุณไม่รองรับฟีเจอร์เสียง"
+  },
+  "feature_request": {
+    "title": "คำขอปรับปรุงฟีเจอร์",
+    "field_title": "หัวข้อ",
+    "field_title_placeholder": "อธิบายสิ่งที่ต้องการปรับปรุงสั้นๆ...",
+    "field_desc": "รายละเอียด",
+    "field_desc_placeholder": "กรุณาระบุรายละเอียด...",
+    "field_priority": "ลำดับความสำคัญ",
+    "priority_low": "ต่ำ",
+    "priority_medium": "กลาง",
+    "priority_high": "สูง",
+    "field_attachments": "ไฟล์แนบ",
+    "field_attachments_hint": "เลือกรูปภาพหรือวิดีโอ (หลายไฟล์ได้)",
+    "submit": "ส่ง",
+    "success": "ส่งเรียบร้อยแล้ว",
+    "error": "ส่งไม่สำเร็จ",
+    "nav_label": "ขอปรับปรุง"
   }
 }

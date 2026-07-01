@@ -4,815 +4,417 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>AIチャット - 現場AIナビ</title>
-  <link rel="stylesheet" href="../css/style.css">
-  <link rel="stylesheet" href="../css/layout.css">
   <style>
-    body {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; background: #f0f2f5; }
 
-    .chat-page {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding-top: var(--layout-header-height);
-      overflow: hidden;
-    }
-
-    /* Context Selector */
-    .context-bar {
-      flex-shrink: 0;
-      display: flex;
-      gap: 6px;
-      padding: 10px 16px;
-      overflow-x: auto;
-      border-bottom: 1px solid var(--border);
-      background: var(--bg);
-    }
-
-    .context-chip {
-      padding: 6px 14px;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      background: var(--bg-card);
-      cursor: pointer;
-      font-size: 0.75em;
-      white-space: nowrap;
-      color: var(--text);
-      transition: all 0.2s;
-    }
-
-    .context-chip.active {
-      background: var(--primary);
-      color: #fff;
-      border-color: var(--primary);
-    }
+    /* Header */
+    .chat-header { background: #1a237e; color: #fff; padding: 12px 16px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .chat-header .back-btn { background: none; border: none; color: #fff; font-size: 1.2em; cursor: pointer; padding: 4px; }
+    .chat-header .header-info { flex: 1; }
+    .chat-header .header-title { font-weight: 700; font-size: 1em; }
+    .chat-header .header-sub { font-size: 0.75em; opacity: 0.8; }
+    .eq-select { padding: 6px 10px; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; background: rgba(255,255,255,0.15); color: #fff; font-size: 0.8em; max-width: 160px; }
+    .eq-select option { color: #333; }
 
     /* Messages */
-    .chat-messages-full {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      -webkit-overflow-scrolling: touch;
-    }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; -webkit-overflow-scrolling: touch; }
 
-    .msg {
-      max-width: 85%;
-      padding: 12px 16px;
-      border-radius: 16px;
-      font-size: 0.95em;
-      line-height: 1.6;
-      word-break: break-word;
-      position: relative;
-    }
+    .msg { max-width: 85%; padding: 12px 16px; border-radius: 16px; font-size: 0.93em; line-height: 1.65; word-break: break-word; white-space: pre-wrap; }
+    .msg-user { align-self: flex-end; background: #1a237e; color: #fff; border-bottom-right-radius: 4px; }
+    .msg-ai { align-self: flex-start; background: #fff; border: 1px solid #e0e0e0; border-bottom-left-radius: 4px; }
+    .msg-system { align-self: center; background: #e8eaf6; border-radius: 10px; font-size: 0.82em; color: #333; text-align: center; max-width: 95%; padding: 10px 16px; }
 
-    .msg.user {
-      align-self: flex-end;
-      background: var(--primary);
-      color: #fff;
-      border-bottom-right-radius: 4px;
-    }
+    .msg-time { font-size: 0.65em; opacity: 0.5; margin-top: 4px; }
+    .msg-ai .msg-time { text-align: left; }
+    .msg-user .msg-time { text-align: right; }
 
-    .msg.ai {
-      align-self: flex-start;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-bottom-left-radius: 4px;
-    }
+    .sources-badge { font-size: 0.75em; color: #1a237e; margin-top: 6px; cursor: pointer; }
+    .sources-detail { font-size: 0.75em; color: #666; margin-top: 2px; display: none; }
+    .sources-detail.open { display: block; }
 
-    .msg.system {
-      align-self: center;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      font-size: 0.8em;
-      color: var(--text-secondary);
-      text-align: center;
-      max-width: 90%;
-      border-radius: 8px;
-    }
+    .faq-badge { display: inline-block; background: #fff3e0; color: #e65100; padding: 1px 8px; border-radius: 10px; font-size: 0.7em; font-weight: 600; margin-bottom: 4px; }
 
-    .msg-time {
-      font-size: 0.65em;
-      opacity: 0.6;
-      margin-top: 4px;
-      text-align: right;
-    }
+    /* Action buttons after AI message */
+    .resolve-bar { display: flex; gap: 8px; padding: 8px 0; align-self: flex-start; }
+    .resolve-btn { padding: 10px 18px; border: none; border-radius: 10px; cursor: pointer; font-size: 0.88em; font-weight: 600; min-height: 44px; transition: all 0.15s; }
+    .resolve-btn.yes { background: #e8f5e9; color: #2e7d32; }
+    .resolve-btn.yes:active { background: #c8e6c9; }
+    .resolve-btn.no { background: #fce4ec; color: #c62828; }
+    .resolve-btn.no:active { background: #f8bbd0; }
 
-    .msg.ai .msg-time { text-align: left; }
+    /* Issue type selector */
+    .issue-type-bar { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; align-self: flex-start; }
+    .issue-type-btn { padding: 8px 14px; background: #fff; border: 1px solid #e0e0e0; border-radius: 20px; font-size: 0.82em; cursor: pointer; min-height: 40px; }
+    .issue-type-btn:active { background: #e8eaf6; }
 
-    .msg-actions {
-      display: flex;
-      gap: 6px;
-      margin-top: 8px;
-    }
+    /* Contact card */
+    .contact-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 14px; margin: 4px 0; align-self: flex-start; max-width: 90%; }
+    .contact-card .cc-title { font-weight: 700; font-size: 0.85em; color: #1a237e; margin-bottom: 8px; }
+    .contact-item { padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+    .contact-item:last-child { border-bottom: none; }
+    .contact-name { font-weight: 600; font-size: 0.9em; }
+    .contact-role { font-size: 0.75em; color: #888; }
+    .contact-btns { display: flex; gap: 6px; margin-top: 6px; }
+    .contact-btns a { display: inline-flex; align-items: center; gap: 4px; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 0.82em; font-weight: 600; min-height: 40px; }
+    .contact-btns a.phone { background: #1a237e; color: #fff; }
+    .contact-btns a.email { background: #e8eaf6; color: #1a237e; }
 
-    .msg-action-btn {
-      background: none;
-      border: 1px solid var(--border);
-      padding: 4px 10px;
-      border-radius: 16px;
-      cursor: pointer;
-      font-size: 0.75em;
-      color: var(--text-secondary);
-      transition: background 0.15s;
-    }
+    .step-resolve-bar { display: flex; gap: 8px; padding: 8px 0; align-self: flex-start; }
 
-    .msg-action-btn:active { background: var(--bg); }
+    /* Suggestions */
+    .suggestions { flex-shrink: 0; display: flex; gap: 6px; padding: 8px 16px; overflow-x: auto; border-top: 1px solid #e0e0e0; background: #fff; }
+    .suggest-btn { padding: 8px 14px; background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 20px; cursor: pointer; font-size: 0.78em; white-space: nowrap; min-height: 36px; }
+    .suggest-btn:active { background: #e8eaf6; }
 
-    /* Thinking indicator */
-    .thinking-dots {
-      display: inline-flex;
-      gap: 4px;
-      padding: 4px 0;
-    }
+    /* Input */
+    .chat-input-area { flex-shrink: 0; padding: 12px 16px; background: #fff; border-top: 1px solid #e0e0e0; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0)); }
+    .input-row { display: flex; gap: 8px; align-items: flex-end; }
+    .input-row textarea { flex: 1; padding: 10px 14px; border: 2px solid #e0e0e0; border-radius: 20px; resize: none; font-size: 0.95em; font-family: inherit; max-height: 100px; line-height: 1.4; }
+    .input-row textarea:focus { outline: none; border-color: #1a237e; }
+    .send-btn { width: 44px; height: 44px; border-radius: 50%; background: #1a237e; color: #fff; border: none; cursor: pointer; font-size: 1.2em; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .send-btn:disabled { opacity: 0.4; }
 
-    .thinking-dots span {
-      width: 8px;
-      height: 8px;
-      background: var(--text-secondary);
-      border-radius: 50%;
-      animation: bounce 1.4s infinite ease-in-out;
-    }
-
-    .thinking-dots span:nth-child(1) { animation-delay: 0s; }
-    .thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
-    .thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes bounce {
-      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-      40% { transform: scale(1); opacity: 1; }
-    }
-
-    /* Suggested Questions */
-    .suggestions {
-      flex-shrink: 0;
-      display: flex;
-      gap: 6px;
-      padding: 8px 16px;
-      overflow-x: auto;
-      border-top: 1px solid var(--border);
-      background: var(--bg);
-    }
-
-    .suggestion-btn {
-      padding: 8px 14px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 0.78em;
-      white-space: nowrap;
-      color: var(--text);
-    }
-
-    .suggestion-btn:active { background: rgba(26, 115, 232, 0.1); }
-
-    /* Input Area */
-    .chat-input-full {
-      flex-shrink: 0;
-      padding: 12px 16px;
-      border-top: 1px solid var(--border);
-      background: var(--bg-card);
-      padding-bottom: calc(12px + env(safe-area-inset-bottom, 0));
-    }
-
-    .input-row {
-      display: flex;
-      align-items: flex-end;
-      gap: 8px;
-    }
-
-    .input-row textarea {
-      flex: 1;
-      padding: 10px 14px;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      resize: none;
-      font-size: 0.95em;
-      font-family: inherit;
-      background: var(--bg);
-      color: var(--text);
-      max-height: 120px;
-      line-height: 1.4;
-    }
-
-    .input-row textarea:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
-
-    .send-btn {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      cursor: pointer;
-      font-size: 1.2em;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .send-btn:active:not(:disabled) { background: var(--primary-dark); }
-
-    .voice-btn-chat {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      cursor: pointer;
-      font-size: 1.1em;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .voice-btn-chat.recording {
-      background: var(--danger);
-      border-color: var(--danger);
-      animation: pulse 1s infinite;
-    }
-
-    /* Image upload */
-    .attach-btn {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      cursor: pointer;
-      font-size: 1.1em;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .image-preview {
-      display: none;
-      padding: 8px 16px 0;
-    }
-
-    .image-preview img {
-      max-height: 100px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-    }
-
-    .image-preview .remove-img {
-      background: var(--danger);
-      color: #fff;
-      border: none;
-      border-radius: 50%;
-      width: 22px;
-      height: 22px;
-      cursor: pointer;
-      font-size: 0.7em;
-      position: relative;
-      top: -50px;
-      left: -12px;
-    }
-
-    /* History sidebar */
-    .history-drawer {
-      position: fixed;
-      top: 0;
-      left: -300px;
-      width: 280px;
-      height: 100vh;
-      background: var(--bg-card);
-      border-right: 1px solid var(--border);
-      z-index: 300;
-      transition: left 0.3s ease;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .history-drawer.open { left: 0; }
-
-    .history-drawer-header {
-      padding: 16px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-top: calc(16px + env(safe-area-inset-top, 0));
-    }
-
-    .history-drawer-header h3 { font-size: 1em; }
-
-    .history-drawer-close {
-      background: none;
-      border: none;
-      font-size: 1.2em;
-      cursor: pointer;
-      color: var(--text);
-    }
-
-    .history-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px;
-    }
-
-    .history-entry {
-      padding: 10px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.85em;
-      margin-bottom: 4px;
-      color: var(--text);
-      transition: background 0.15s;
-    }
-
-    .history-entry:hover { background: var(--bg); }
-
-    .history-entry .history-q {
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .history-entry .history-t {
-      font-size: 0.75em;
-      color: var(--text-secondary);
-      margin-top: 2px;
-    }
-
-    .new-chat-btn {
-      margin: 8px;
-      padding: 10px;
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.9em;
-    }
-
-    .overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.4);
-      z-index: 250;
-      display: none;
-    }
-
-    .overlay.show { display: block; }
+    /* Thinking animation */
+    .thinking { display: inline-flex; gap: 4px; padding: 4px 0; }
+    .thinking span { width: 8px; height: 8px; background: #999; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out; }
+    .thinking span:nth-child(2) { animation-delay: 0.2s; }
+    .thinking span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce { 0%,80%,100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
   </style>
 </head>
 <body>
-  <!-- Header -->
-  <header class="l-header">
-    <div class="l-header__left">
-      <button id="back-btn" class="l-header__back" onclick="window.location.href='../index.html'">←</button>
-      <span class="l-header__title" id="header-title">AIチャット</span>
+  <div class="chat-header">
+    <button class="back-btn" onclick="window.location.href='../index.html'">←</button>
+    <div class="header-info">
+      <div class="header-title" id="header-title">AIチャット</div>
+      <div class="header-sub" id="header-sub">設備を選択して質問できます</div>
     </div>
-    <div class="l-header__actions">
-      <button id="history-toggle" style="background:none;border:none;color:#fff;font-size:1.2em;cursor:pointer;">☰</button>
-      <button id="lang-btn" class="icon-btn" style="color:#fff;">
-        <span>🌐</span>
-        <span id="current-lang">JA</span>
-      </button>
-    </div>
-  </header>
-
-  <!-- History Drawer -->
-  <div class="overlay" id="overlay"></div>
-  <div class="history-drawer" id="history-drawer">
-    <div class="history-drawer-header">
-      <h3 id="history-title">質問履歴</h3>
-      <button class="history-drawer-close" id="history-close">✕</button>
-    </div>
-    <div class="history-list" id="history-list"></div>
-    <button class="new-chat-btn" id="new-chat-btn">＋ 新しいチャット</button>
+    <select class="eq-select" id="eq-select" onchange="onEqChange()">
+      <option value="">🏭 全設備</option>
+    </select>
   </div>
 
-  <!-- Chat Page -->
-  <div class="chat-page l-chat">
-    <!-- Context Selector -->
-    <div class="context-bar">
-      <button class="context-chip active" data-context="general">💬 一般</button>
-      <button class="context-chip" data-context="cnc">🏭 CNC旋盤</button>
-      <button class="context-chip" data-context="press">🔨 プレス機</button>
-      <button class="context-chip" data-context="welder">⚡ 溶接ロボット</button>
-      <button class="context-chip" data-context="safety">⚠️ 安全</button>
-    </div>
+  <div class="chat-messages" id="chat-messages">
+    <div class="msg msg-system">AIアシスタントに質問してください。マニュアル検索・トラブル対応・操作方法を回答します。</div>
+  </div>
 
-    <!-- Messages -->
-    <div class="chat-messages-full l-chat__messages" id="chat-messages">
-      <div class="msg system">
-        <span id="welcome-msg">AIアシスタントに質問してください。機械操作、トラブル対応、安全手順について回答します。</span>
-      </div>
-    </div>
+  <div class="suggestions" id="suggestions">
+    <button class="suggest-btn" onclick="quickAsk(this.textContent)">インク交換の手順</button>
+    <button class="suggest-btn" onclick="quickAsk(this.textContent)">用紙のセット方法</button>
+    <button class="suggest-btn" onclick="quickAsk(this.textContent)">エラーが出た</button>
+    <button class="suggest-btn" onclick="quickAsk(this.textContent)">メンテナンス項目</button>
+    <button class="suggest-btn" onclick="quickAsk(this.textContent)">点検の手順</button>
+  </div>
 
-    <!-- Suggestions -->
-    <div class="suggestions" id="suggestions">
-      <button class="suggestion-btn" data-q="CNC旋盤の起動手順を教えて">起動手順</button>
-      <button class="suggestion-btn" data-q="異音がする場合どうすればいい？">異音対応</button>
-      <button class="suggestion-btn" data-q="非常停止の手順は？">非常停止</button>
-      <button class="suggestion-btn" data-q="保護具の正しい着用方法">保護具</button>
-      <button class="suggestion-btn" data-q="定期メンテナンスの項目">メンテナンス</button>
-    </div>
-
-    <!-- Image Preview -->
-    <div class="image-preview" id="image-preview">
-      <img id="preview-img" src="" alt="preview">
-      <button class="remove-img" id="remove-img">✕</button>
-    </div>
-
-    <!-- Input Area -->
-    <div class="chat-input-full l-chat__input">
-      <div class="input-row">
-        <button class="attach-btn" id="attach-btn" title="画像を添付">📎</button>
-        <textarea id="chat-input" rows="1" placeholder="質問を入力..."></textarea>
-        <button class="voice-btn-chat" id="voice-btn" title="音声入力">🎤</button>
-        <button class="send-btn" id="send-btn" disabled>➤</button>
-      </div>
-      <input type="file" id="file-input" accept="image/*" style="display:none;">
+  <div class="chat-input-area">
+    <div class="input-row">
+      <textarea id="chat-input" rows="1" placeholder="質問を入力..."></textarea>
+      <button class="send-btn" id="send-btn" disabled onclick="sendMessage()">➤</button>
     </div>
   </div>
 
   <script>
-    // ========== State ==========
-    const lang = localStorage.getItem('genba-lang') || 'ja';
-    const aiModel = localStorage.getItem('genba-model') || 'gemma3:latest';
-    const voiceEnabled = localStorage.getItem('genba-voice') !== 'false';
-    const voiceSpeed = parseFloat(localStorage.getItem('genba-voice-speed') || '1');
-    let currentContext = 'general';
-    let attachedImage = null;
-    let conversations = JSON.parse(localStorage.getItem('genba-chat-history') || '[]');
-    let currentConvoId = Date.now();
-    let messages = [];
-
-    // Theme
-    document.documentElement.setAttribute('data-theme', localStorage.getItem('genba-theme') || 'light');
-    document.documentElement.setAttribute('data-fontsize', localStorage.getItem('genba-fontsize') || 'medium');
-
-    // ========== i18n ==========
-    const texts = {
-      ja: {
-        title: 'AIチャット', history: '質問履歴', newChat: '＋ 新しいチャット',
-        placeholder: '質問を入力...', back: '← 戻る',
-        welcome: 'AIアシスタントに質問してください。機械操作、トラブル対応、安全手順について回答します。',
-        thinking: '考え中...', error: 'エラー: Ollamaに接続できません',
-        copied: 'コピーしました', read: '🔊 読み上げ', copy: '📋 コピー',
-        general: '💬 一般', safety: '⚠️ 安全',
-        s1: '起動手順', s2: '異音対応', s3: '非常停止', s4: '保護具', s5: 'メンテナンス',
-        q1: 'CNC旋盤の起動手順を教えて', q2: '異音がする場合どうすればいい？',
-        q3: '非常停止の手順は？', q4: '保護具の正しい着用方法', q5: '定期メンテナンスの項目',
-      },
-      en: {
-        title: 'AI Chat', history: 'History', newChat: '＋ New Chat',
-        placeholder: 'Type your question...', back: '← Back',
-        welcome: 'Ask the AI assistant about machine operation, troubleshooting, and safety procedures.',
-        thinking: 'Thinking...', error: 'Error: Cannot connect to Ollama',
-        copied: 'Copied', read: '🔊 Read', copy: '📋 Copy',
-        general: '💬 General', safety: '⚠️ Safety',
-        s1: 'Startup', s2: 'Strange noise', s3: 'Emergency stop', s4: 'PPE', s5: 'Maintenance',
-        q1: 'How to start the CNC lathe?', q2: 'What to do if there is a strange noise?',
-        q3: 'Emergency stop procedure?', q4: 'Proper PPE usage', q5: 'Regular maintenance items',
-      },
-      th: {
-        title: 'แชท AI', history: 'ประวัติ', newChat: '＋ แชทใหม่',
-        placeholder: 'พิมพ์คำถาม...', back: '← กลับ',
-        welcome: 'ถามผู้ช่วย AI เกี่ยวกับการใช้เครื่องจักร การแก้ปัญหา และขั้นตอนความปลอดภัย',
-        thinking: 'กำลังคิด...', error: 'ข้อผิดพลาด: ไม่สามารถเชื่อมต่อ Ollama',
-        copied: 'คัดลอกแล้ว', read: '🔊 อ่าน', copy: '📋 คัดลอก',
-        general: '💬 ทั่วไป', safety: '⚠️ ความปลอดภัย',
-        s1: 'เริ่มเครื่อง', s2: 'เสียงผิดปกติ', s3: 'หยุดฉุกเฉิน', s4: 'อุปกรณ์ป้องกัน', s5: 'บำรุงรักษา',
-        q1: 'วิธีเริ่มเครื่องกลึง CNC?', q2: 'ทำอย่างไรเมื่อมีเสียงผิดปกติ?',
-        q3: 'ขั้นตอนหยุดฉุกเฉิน?', q4: 'วิธีสวมอุปกรณ์ป้องกันที่ถูกต้อง', q5: 'รายการบำรุงรักษาประจำ',
-      },
-      vi: {
-        title: 'Chat AI', history: 'Lịch sử', newChat: '＋ Chat mới',
-        placeholder: 'Nhập câu hỏi...', back: '← Quay lại',
-        welcome: 'Hỏi trợ lý AI về vận hành máy, xử lý sự cố và quy trình an toàn.',
-        thinking: 'Đang suy nghĩ...', error: 'Lỗi: Không thể kết nối Ollama',
-        copied: 'Đã sao chép', read: '🔊 Đọc', copy: '📋 Sao chép',
-        general: '💬 Chung', safety: '⚠️ An toàn',
-        s1: 'Khởi động', s2: 'Tiếng lạ', s3: 'Dừng khẩn cấp', s4: 'Bảo hộ', s5: 'Bảo trì',
-        q1: 'Cách khởi động máy tiện CNC?', q2: 'Phải làm gì khi có tiếng lạ?',
-        q3: 'Quy trình dừng khẩn cấp?', q4: 'Cách sử dụng đồ bảo hộ đúng', q5: 'Các mục bảo trì định kỳ',
-      },
-    };
-
-    const t = texts[lang] || texts.ja;
-
-    // Apply i18n
-    document.getElementById('header-title').textContent = t.title;
-    document.getElementById('history-title').textContent = t.history;
-    document.getElementById('new-chat-btn').textContent = t.newChat;
-    document.getElementById('chat-input').placeholder = t.placeholder;
-    document.getElementById('back-btn').textContent = t.back;
-    document.getElementById('welcome-msg').textContent = t.welcome;
-    document.getElementById('current-lang').textContent = lang.toUpperCase();
-
-    const sugBtns = document.querySelectorAll('.suggestion-btn');
-    const sKeys = ['s1','s2','s3','s4','s5'];
-    const qKeys = ['q1','q2','q3','q4','q5'];
-    sugBtns.forEach((btn, i) => {
-      btn.textContent = t[sKeys[i]];
-      btn.dataset.q = t[qKeys[i]];
-    });
-
-    // ========== Context ==========
-    const contextPrompts = {
-      general: 'You are a factory floor assistant AI.',
-      cnc: 'You are an expert on CNC lathes (model CK6140, FANUC controller). Focus on CNC lathe operation, programming, and troubleshooting.',
-      press: 'You are an expert on hydraulic press machines (model AP-100, 100-ton). Focus on press operation and safety.',
-      welder: 'You are an expert on arc welding robots (model RW-200). Focus on welding robot operation and maintenance.',
-      safety: 'You are a factory safety expert. Focus on safety procedures, PPE, emergency response, and daily inspections.',
-    };
-
-    document.querySelectorAll('.context-chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        document.querySelectorAll('.context-chip').forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        currentContext = chip.dataset.context;
-      });
-    });
-
-    // ========== Chat ==========
+    const API = 'http://localhost:8001';
+    const chatMessages = document.getElementById('chat-messages');
     const chatInput = document.getElementById('chat-input');
     const sendBtn = document.getElementById('send-btn');
-    const chatMessages = document.getElementById('chat-messages');
+    let currentEqId = '';
+    let currentInqId = null;
+    let lastQuestion = '';
+    let conversationHistory = [];
 
+    // ===== Equipment =====
+    async function loadEquipment() {
+      try {
+        const d = await(await fetch(API + '/equipment')).json();
+        const sel = document.getElementById('eq-select');
+        (d.equipment || []).forEach(eq => {
+          sel.innerHTML += `<option value="${eq.id}" data-name="${eq.name}" data-loc="${eq.location||''}">${eq.name}</option>`;
+        });
+      } catch {}
+      // URL param
+      const params = new URLSearchParams(window.location.search);
+      const eqParam = params.get('equipment_id');
+      if (eqParam) { document.getElementById('eq-select').value = eqParam; onEqChange(); }
+    }
+
+    function onEqChange() {
+      const sel = document.getElementById('eq-select');
+      currentEqId = sel.value;
+      const opt = sel.selectedOptions[0];
+      if (currentEqId && opt) {
+        const name = opt.dataset.name || '';
+        document.getElementById('header-title').textContent = name || 'AIチャット';
+        document.getElementById('header-sub').textContent = opt.dataset.loc || '';
+        addSystemMsg('🏭 ' + name + ' について何でも聞いてください');
+      } else {
+        document.getElementById('header-title').textContent = 'AIチャット';
+        document.getElementById('header-sub').textContent = '設備を選択して質問できます';
+      }
+    }
+
+    // ===== Input =====
     chatInput.addEventListener('input', () => {
-      sendBtn.disabled = !chatInput.value.trim() && !attachedImage;
+      sendBtn.disabled = !chatInput.value.trim();
       chatInput.style.height = 'auto';
-      chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+      chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
     });
-
-    chatInput.addEventListener('keydown', (e) => {
+    let chatComposing = false;
+    chatInput.addEventListener('compositionstart', () => {
+      chatComposing = true;
+    });
+    chatInput.addEventListener('compositionend', () => {
+      chatComposing = false;
+    });
+    chatInput.addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) {
+        if (chatComposing) return;
+        if (e.isComposing) return;
         e.preventDefault();
         sendMessage();
       }
     });
 
-    sendBtn.addEventListener('click', sendMessage);
+    function quickAsk(text) { chatInput.value = text; sendBtn.disabled = false; sendMessage(); }
 
-    // Suggestions
-    document.querySelectorAll('.suggestion-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        chatInput.value = btn.dataset.q;
-        sendBtn.disabled = false;
-        sendMessage();
-      });
-    });
+    // ===== Messages =====
+    function addMsg(text, type, extra) {
+      const el = document.createElement('div');
+      el.className = 'msg msg-' + type;
+      const time = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+      let html = text;
+      if (extra?.sources?.length) {
+        html += `<div class="sources-badge" onclick="this.nextElementSibling.classList.toggle('open')">📄 出典 (${extra.sources.length}件)</div>`;
+        html += `<div class="sources-detail">${extra.sources.join('<br>')}</div>`;
+      }
+      if (extra?.faq) html = '<span class="faq-badge">📌 よくある質問より</span><br>' + html;
+      html += `<div class="msg-time">${time}</div>`;
+      el.innerHTML = html;
+      chatMessages.appendChild(el);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      return el;
+    }
 
+    function addSystemMsg(text) { addMsg(text, 'system'); }
+
+    function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML.replace(/\n/g, '<br>'); }
+
+    // ===== Send =====
     async function sendMessage() {
       const text = chatInput.value.trim();
-      if (!text && !attachedImage) return;
-
-      chatInput.value = '';
-      chatInput.style.height = 'auto';
-      sendBtn.disabled = true;
+      if (!text) return;
+      chatInput.value = ''; chatInput.style.height = 'auto'; sendBtn.disabled = true;
+      lastQuestion = text;
       document.getElementById('suggestions').style.display = 'none';
 
-      addMessage(text, 'user');
-      messages.push({ role: 'user', content: text });
-
-      // Clear image
-      const imgData = attachedImage;
-      if (attachedImage) {
-        attachedImage = null;
-        document.getElementById('image-preview').style.display = 'none';
-      }
+      addMsg(escHtml(text), 'user');
+      conversationHistory.push({ role: 'user', content: text });
 
       // Thinking
-      const thinkingEl = document.createElement('div');
-      thinkingEl.className = 'msg ai';
-      thinkingEl.innerHTML = `<div class="thinking-dots"><span></span><span></span><span></span></div>`;
-      chatMessages.appendChild(thinkingEl);
+      const thinkEl = document.createElement('div');
+      thinkEl.className = 'msg msg-ai';
+      thinkEl.innerHTML = '<div class="thinking"><span></span><span></span><span></span></div>';
+      chatMessages.appendChild(thinkEl);
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
       try {
-        const langNames = { ja: '日本語', en: 'English', th: 'ภาษาไทย', vi: 'Tiếng Việt' };
-        const systemPrompt = `${contextPrompts[currentContext]} Always respond in ${langNames[lang] || '日本語'}. Keep answers clear, concise, and step-by-step. Use simple language suitable for factory workers.`;
-
-        const body = {
-          model: aiModel,
-          prompt: text,
-          system: systemPrompt,
-          stream: false,
-        };
-
-        // If vision model and image attached
-        if (imgData && aiModel.includes('vl')) {
-          body.images = [imgData.split(',')[1]];
+        const body = { question: text };
+        if (currentEqId) body.equipment_id = currentEqId;
+        // 会話文脈を含める（直前のやり取りをcontextとして追加）
+        if (conversationHistory.length >= 2) {
+          const recent = conversationHistory.slice(-4); // 直近2往復
+          const contextStr = recent.map(m => (m.role === 'user' ? '質問: ' : '回答: ') + m.content.substring(0, 200)).join('\n');
+          body.question = '【前の会話の文脈】\n' + contextStr + '\n\n【今の質問】\n' + text;
         }
 
-        const res = await fetch('http://localhost:11434/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
+        const res = await fetch(API + '/ask', {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(body)
         });
-
         const data = await res.json();
-        thinkingEl.remove();
-        addMessage(data.response, 'ai');
-        messages.push({ role: 'assistant', content: data.response });
+        thinkEl.remove();
 
-        // Save to history
-        saveConversation(text, data.response);
+        const answerText = data.answer || '回答を取得できませんでした';
+        addMsg(escHtml(answerText), 'ai', { sources: data.sources });
+        conversationHistory.push({ role: 'assistant', content: answerText });
+
+        // Create inquiry record
+        try {
+          const inqRes = await fetch(API + '/inquiries', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ question: text, equipment_id: currentEqId, answer: answerText })
+          });
+          const inqData = await inqRes.json();
+          currentInqId = inqData.id;
+        } catch {}
+
+        // Show resolve buttons
+        showResolveButtons(data);
+
       } catch (e) {
-        thinkingEl.remove();
-        addMessage(t.error, 'ai');
+        thinkEl.remove();
+        addMsg('接続エラー: AIサービスに接続できません', 'system');
       }
     }
 
-    function addMessage(text, type) {
-      const el = document.createElement('div');
-      el.className = `msg ${type}`;
-
-      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      let html = `<div class="msg-text">${escapeHtml(text)}</div><div class="msg-time">${time}</div>`;
-
-      if (type === 'ai') {
-        html += `
-          <div class="msg-actions">
-            <button class="msg-action-btn copy-btn">${t.copy}</button>
-            <button class="msg-action-btn read-btn">${t.read}</button>
-          </div>`;
-      }
-
-      el.innerHTML = html;
-
-      if (type === 'ai') {
-        el.querySelector('.copy-btn').addEventListener('click', () => {
-          navigator.clipboard.writeText(text);
-          el.querySelector('.copy-btn').textContent = `✓ ${t.copied}`;
-          setTimeout(() => el.querySelector('.copy-btn').textContent = t.copy, 2000);
-        });
-        el.querySelector('.read-btn').addEventListener('click', () => speak(text));
-      }
-
-      chatMessages.appendChild(el);
+    // ===== Resolve Flow =====
+    function showResolveButtons(apiData) {
+      addSystemMsg('この回答で解決しましたか？');
+      const bar = document.createElement('div');
+      bar.className = 'resolve-bar';
+      bar.innerHTML = `
+        <button class="resolve-btn yes" onclick="onResolved(this.parentElement)">✅ 解決した</button>
+        <button class="resolve-btn no" onclick="onNotResolved(this.parentElement, ${JSON.stringify(apiData).replace(/"/g, '&quot;')})">❌ 解決しない</button>
+      `;
+      chatMessages.appendChild(bar);
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    function escapeHtml(str) {
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML.replace(/\n/g, '<br>');
+    async function onResolved(barEl) {
+      barEl.remove();
+      if (currentInqId) {
+        try { await fetch(API + '/inquiries/' + currentInqId + '/resolve-internal', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ resolved_by: 'staff', note: '現場で解決' }) }); } catch {}
+      }
+      addSystemMsg('✅ 解決済みとして記録しました');
+      addSystemMsg('続けて質問できます...');
     }
 
-    // ========== Image Attach ==========
-    const attachBtn = document.getElementById('attach-btn');
-    const fileInput = document.getElementById('file-input');
+    function onNotResolved(barEl, apiData) {
+      barEl.remove();
+      addSystemMsg('この回答で解決しましたか？ → 解決しない');
+      // Show issue type selector
+      const typeBar = document.createElement('div');
+      typeBar.className = 'issue-type-bar';
+      ['操作方法', '機械不良', '消耗品切れ', '電気系統', 'ソフトウェア', 'その他'].forEach(t => {
+        typeBar.innerHTML += `<button class="issue-type-btn" onclick="onIssueTypeSelected('${t}', this.parentElement)">${t}</button>`;
+      });
+      chatMessages.appendChild(typeBar);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
 
-    attachBtn.addEventListener('click', () => fileInput.click());
+    async function onIssueTypeSelected(issueType, barEl) {
+      barEl.remove();
+      addSystemMsg('障害種別: ' + issueType);
 
-    fileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+      // Record handover
+      if (currentInqId) {
+        try { await fetch(API + '/inquiries/' + currentInqId + '/handover', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ issue_type: issueType, step: 'internal' }) }); } catch {}
+      }
 
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        attachedImage = ev.target.result;
-        document.getElementById('preview-img').src = attachedImage;
-        document.getElementById('image-preview').style.display = 'block';
-        sendBtn.disabled = false;
-      };
-      reader.readAsDataURL(file);
-    });
+      // STEP 1: Internal staff
+      showStep1(issueType);
+    }
 
-    document.getElementById('remove-img').addEventListener('click', () => {
-      attachedImage = null;
-      document.getElementById('image-preview').style.display = 'none';
-      fileInput.value = '';
-      sendBtn.disabled = !chatInput.value.trim();
-    });
+    async function showStep1(issueType) {
+      const card = document.createElement('div');
+      card.className = 'contact-card';
+      let html = '<div class="cc-title">【STEP 1】社内保守担当に連絡</div>';
 
-    // ========== Voice ==========
-    const voiceBtn = document.getElementById('voice-btn');
-
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      const langMap = { ja: 'ja-JP', en: 'en-US', th: 'th-TH', vi: 'vi-VN' };
-
-      recognition.onresult = (event) => {
-        chatInput.value = event.results[0][0].transcript;
-        sendBtn.disabled = false;
-        voiceBtn.classList.remove('recording');
-      };
-
-      recognition.onend = () => voiceBtn.classList.remove('recording');
-      recognition.onerror = () => voiceBtn.classList.remove('recording');
-
-      voiceBtn.addEventListener('click', () => {
-        if (voiceBtn.classList.contains('recording')) {
-          recognition.stop();
+      try {
+        const url = currentEqId ? API + '/staff/maintenance?equipment_id=' + currentEqId : API + '/staff/maintenance';
+        const staffData = await(await fetch(url)).json();
+        if (staffData.staff && staffData.staff.length) {
+          staffData.staff.forEach(s => {
+            html += `<div class="contact-item">
+              <div class="contact-name">👤 ${s.display_name}</div>
+              <div class="contact-role">${s.department || ''}</div>
+              <div class="contact-btns">
+                ${s.phone ? `<a class="phone" href="tel:${s.phone}">📞 電話</a>` : ''}
+                ${s.email ? `<a class="email" href="mailto:${s.email}">✉️ メール</a>` : ''}
+              </div>
+            </div>`;
+          });
         } else {
-          recognition.lang = langMap[lang] || 'ja-JP';
-          recognition.start();
-          voiceBtn.classList.add('recording');
+          html += '<div style="color:#999;padding:8px 0">社内保守担当が登録されていません</div>';
         }
-      });
-    } else {
-      voiceBtn.style.display = 'none';
-    }
-
-    function speak(text) {
-      if (!voiceEnabled || !('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      const langMap = { ja: 'ja-JP', en: 'en-US', th: 'th-TH', vi: 'vi-VN' };
-      u.lang = langMap[lang] || 'ja-JP';
-      u.rate = voiceSpeed;
-      window.speechSynthesis.speak(u);
-    }
-
-    // ========== History Drawer ==========
-    const drawer = document.getElementById('history-drawer');
-    const overlay = document.getElementById('overlay');
-
-    document.getElementById('history-toggle').addEventListener('click', () => {
-      drawer.classList.add('open');
-      overlay.classList.add('show');
-      renderHistory();
-    });
-
-    function closeDrawer() {
-      drawer.classList.remove('open');
-      overlay.classList.remove('show');
-    }
-
-    document.getElementById('history-close').addEventListener('click', closeDrawer);
-    overlay.addEventListener('click', closeDrawer);
-
-    document.getElementById('new-chat-btn').addEventListener('click', () => {
-      currentConvoId = Date.now();
-      messages = [];
-      chatMessages.innerHTML = `<div class="msg system"><span>${t.welcome}</span></div>`;
-      document.getElementById('suggestions').style.display = 'flex';
-      closeDrawer();
-    });
-
-    function saveConversation(question, answer) {
-      const entry = {
-        id: currentConvoId,
-        question: question.substring(0, 60),
-        time: new Date().toLocaleString(),
-        messages: [...messages],
-      };
-
-      const idx = conversations.findIndex(c => c.id === currentConvoId);
-      if (idx >= 0) {
-        conversations[idx] = entry;
-      } else {
-        conversations.unshift(entry);
+      } catch {
+        html += '<div style="color:#999;padding:8px 0">取得失敗</div>';
       }
 
-      if (conversations.length > 20) conversations = conversations.slice(0, 20);
-      localStorage.setItem('genba-chat-history', JSON.stringify(conversations));
+      card.innerHTML = html;
+      chatMessages.appendChild(card);
+
+      // Step1 resolve bar
+      const bar = document.createElement('div');
+      bar.className = 'step-resolve-bar';
+      bar.innerHTML = `
+        <button class="resolve-btn yes" onclick="onStep1Resolved(this.parentElement)">✅ 社内で解決した</button>
+        <button class="resolve-btn no" onclick="onStep1NotResolved(this.parentElement, '${issueType}')">❌ 社内でも解決しない</button>
+      `;
+      chatMessages.appendChild(bar);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    function renderHistory() {
-      const list = document.getElementById('history-list');
-      if (conversations.length === 0) {
-        list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-secondary);font-size:0.85em;">履歴なし</div>';
-        return;
+    async function onStep1Resolved(barEl) {
+      barEl.remove();
+      if (currentInqId) {
+        try { await fetch(API + '/inquiries/' + currentInqId + '/resolve-internal', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ resolved_by: 'internal_staff', note: '社内保守担当で解決' }) }); } catch {}
       }
-      list.innerHTML = conversations.map(c => `
-        <div class="history-entry" data-id="${c.id}">
-          <div class="history-q">${escapeHtml(c.question)}</div>
-          <div class="history-t">${c.time}</div>
-        </div>
-      `).join('');
+      addSystemMsg('✅ 社内で解決済みとして記録しました');
+    }
 
-      list.querySelectorAll('.history-entry').forEach(entry => {
-        entry.addEventListener('click', () => {
-          const convo = conversations.find(c => c.id === parseInt(entry.dataset.id));
-          if (convo) {
-            currentConvoId = convo.id;
-            messages = convo.messages || [];
-            chatMessages.innerHTML = `<div class="msg system"><span>${t.welcome}</span></div>`;
-            messages.forEach(m => addMessage(m.content, m.role === 'user' ? 'user' : 'ai'));
-            document.getElementById('suggestions').style.display = 'none';
+    async function onStep1NotResolved(barEl, issueType) {
+      barEl.remove();
+
+      // Record escalation
+      if (currentInqId) {
+        try { await fetch(API + '/inquiries/' + currentInqId + '/handover', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ issue_type: issueType, step: 'external' }) }); } catch {}
+      }
+
+      // STEP 2: External company
+      const card = document.createElement('div');
+      card.className = 'contact-card';
+      let html = '<div class="cc-title">【STEP 2】保守会社に連絡</div>';
+
+      try {
+        if (currentEqId) {
+          const eq = await(await fetch(API + '/equipment/' + currentEqId)).json();
+          const cc = eq.company_contacts;
+          if (cc && cc.maintenance) {
+            const c = cc.maintenance;
+            const mc = eq.maintenance_detail?.maintenance_contract || {};
+
+            // mailto
+            const subject = encodeURIComponent(`【設備障害】${eq.name || ''} / ${issueType}`);
+            const mailBody = encodeURIComponent(
+              `設備名：${eq.name || ''}（${eq.code || ''}）\n設置場所：${eq.location || ''}\n障害種別：${issueType}\n質問内容：${lastQuestion}\n発生日時：${new Date().toLocaleString('ja-JP')}`
+            );
+            const mailTo = c.person_email || c.email || '';
+
+            html += `<div class="contact-item">
+              <div class="contact-name">🏢 ${c.company}</div>
+              <div style="font-size:0.88em">保守担当: ${c.person || '-'}</div>
+              <div style="font-size:0.85em;color:#666">${mc.support_hours ? '🕐 ' + mc.support_hours : ''}</div>
+              <div class="contact-btns">
+                ${c.phone ? `<a class="phone" href="tel:${c.phone}">📞 電話をかける</a>` : ''}
+                ${mailTo ? `<a class="email" href="mailto:${mailTo}?subject=${subject}&body=${mailBody}">✉️ 修理依頼メール</a>` : ''}
+              </div>
+            </div>`;
+
+            // Next inspection
+            const insp = eq.inspection || {};
+            if (insp.next_date) {
+              const diff = Math.ceil((new Date(insp.next_date) - new Date()) / 864e5);
+              html += `<div style="margin-top:8px;font-size:0.82em;color:#e65100">⚠️ 次回点検: ${insp.next_date}${diff <= 30 ? ' (残' + diff + '日)' : ''}</div>`;
+            }
+          } else {
+            html += '<div style="color:#999;padding:8px 0">保守会社が登録されていません</div>';
           }
-          closeDrawer();
-        });
-      });
+        }
+      } catch {
+        html += '<div style="color:#999;padding:8px 0">取得失敗</div>';
+      }
+
+      card.innerHTML = html;
+      chatMessages.appendChild(card);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+
+      addSystemMsg('📋 外部保守会社へのエスカレートを記録しました');
     }
+
+    // ===== Init =====
+    loadEquipment();
   </script>
 </body>
 </html>

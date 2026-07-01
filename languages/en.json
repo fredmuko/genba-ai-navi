@@ -74,5 +74,22 @@
     "stop": "Stop Voice Input",
     "read_aloud": "Read Aloud",
     "not_supported": "Voice features are not supported in your browser"
+  },
+  "feature_request": {
+    "title": "Feature Request",
+    "field_title": "Title",
+    "field_title_placeholder": "Briefly describe the improvement...",
+    "field_desc": "Details",
+    "field_desc_placeholder": "Please provide specific details...",
+    "field_priority": "Priority",
+    "priority_low": "Low",
+    "priority_medium": "Medium",
+    "priority_high": "High",
+    "field_attachments": "Attachments",
+    "field_attachments_hint": "Select images or videos (multiple allowed)",
+    "submit": "Submit",
+    "success": "Submitted successfully",
+    "error": "Failed to submit",
+    "nav_label": "Feature Request"
   }
 }

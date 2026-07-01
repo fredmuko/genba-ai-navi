@@ -351,6 +351,81 @@
       background: #1b5e2033;
       color: #81c784;
     }
+
+    /* Feature Request Modal */
+    .fr-modal-content {
+      text-align: left;
+      max-width: 420px;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    .fr-modal-content h2 {
+      text-align: center;
+    }
+
+    .fr-form {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .fr-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .fr-field label {
+      font-weight: 500;
+      font-size: 0.9em;
+      color: var(--text);
+    }
+
+    .fr-field input[type="text"],
+    .fr-field textarea,
+    .fr-field select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9em;
+      font-family: inherit;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .fr-field textarea {
+      resize: vertical;
+    }
+
+    .fr-field input[type="file"] {
+      font-size: 0.85em;
+      color: var(--text-secondary);
+    }
+
+    .fr-hint {
+      font-size: 0.75em;
+      color: var(--text-secondary);
+    }
+
+    .fr-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 4px;
+    }
+
+    .fr-actions .btn-primary,
+    .fr-actions .btn-secondary {
+      padding: 10px 24px;
+      font-size: 0.9em;
+    }
+
+    .fr-actions .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
@@ -382,7 +457,7 @@
   </div>
 
   <!-- Language Selector Modal -->
-  <div id="lang-modal" class="modal hidden">
+  <div id="lang-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="lang-modal-title">
     <div class="modal-content">
       <h2 id="lang-modal-title">言語 / Language</h2>
       <div class="lang-options">
@@ -553,19 +628,11 @@
           <span class="cat-chevron">▼</span>
         </div>
         <div class="task-category-body">
-          <a class="task-item" onclick="navigateTo('troubleshoot'); return false;" href="#">
-            <div class="task-item-icon orange">🔧</div>
-            <div class="task-item-body">
-              <div class="task-item-title">トラブル対応</div>
-              <div class="task-item-desc">AIがトラブルの原因と対策を提案</div>
-            </div>
-            <span class="task-item-arrow">›</span>
-          </a>
           <a class="task-item" href="pages/chat.html">
             <div class="task-item-icon purple">🤖</div>
             <div class="task-item-body">
-              <div class="task-item-title">AIチャット</div>
-              <div class="task-item-desc">何でも質問できるAIアシスタント</div>
+              <div class="task-item-title">AIアシスタント</div>
+              <div class="task-item-desc">トラブル対応・マニュアル検索・何でも質問</div>
             </div>
             <span class="task-item-arrow">›</span>
           </a>
@@ -606,6 +673,14 @@
             <div class="task-item-body">
               <div class="task-item-title">設定</div>
               <div class="task-item-desc">言語・テーマ・AI設定</div>
+            </div>
+            <span class="task-item-arrow">›</span>
+          </a>
+          <a class="task-item" onclick="openFeatureRequestModal(); return false;" href="#">
+            <div class="task-item-icon purple">💡</div>
+            <div class="task-item-body">
+              <div class="task-item-title" data-i18n="feature_request.nav_label">機能改善</div>
+              <div class="task-item-desc" data-i18n="feature_request.title">機能改善のご要望</div>
             </div>
             <span class="task-item-arrow">›</span>
           </a>
@@ -741,9 +816,9 @@
       <span class="nav-icon">📖</span>
       <span data-i18n="nav.guide">操作ガイド</span>
     </button>
-    <button class="nav-item" data-page="troubleshoot">
-      <span class="nav-icon">🔧</span>
-      <span data-i18n="nav.troubleshoot">トラブル対応</span>
+    <button class="nav-item" onclick="window.location.href='pages/chat.html'" data-page="chat">
+      <span class="nav-icon">🤖</span>
+      <span data-i18n="nav.ai_maintenance">AIメンテナンス</span>
     </button>
     <button class="nav-item" data-page="safety">
       <span class="nav-icon">⚠️</span>
@@ -755,6 +830,45 @@
     </button>
   </nav>
 
+  <!-- Feature Request Modal -->
+  <div id="feature-request-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="fr-modal-title">
+    <div class="modal-content fr-modal-content">
+      <h2 id="fr-modal-title" data-i18n="feature_request.title">機能改善のご要望</h2>
+      <form id="feature-request-form" class="fr-form">
+        <div class="fr-field">
+          <label data-i18n="feature_request.field_title">タイトル</label>
+          <input type="text" id="fr-title" required
+            data-i18n-placeholder="feature_request.field_title_placeholder"
+            placeholder="改善したい内容を一言で...">
+        </div>
+        <div class="fr-field">
+          <label data-i18n="feature_request.field_desc">詳細</label>
+          <textarea id="fr-description" rows="4" required
+            data-i18n-placeholder="feature_request.field_desc_placeholder"
+            placeholder="具体的な内容を記入してください..."></textarea>
+        </div>
+        <div class="fr-field">
+          <label data-i18n="feature_request.field_priority">優先度</label>
+          <select id="fr-priority">
+            <option value="LOW" data-i18n="feature_request.priority_low">低</option>
+            <option value="MEDIUM" selected data-i18n="feature_request.priority_medium">中</option>
+            <option value="HIGH" data-i18n="feature_request.priority_high">高</option>
+          </select>
+        </div>
+        <div class="fr-field">
+          <label data-i18n="feature_request.field_attachments">添付ファイル</label>
+          <input type="file" id="fr-attachments" multiple accept="image/*,video/*">
+          <span class="fr-hint" data-i18n="feature_request.field_attachments_hint">画像・動画を選択（複数可）</span>
+        </div>
+        <div class="fr-actions">
+          <button type="button" class="btn-secondary" id="fr-cancel-btn" data-i18n="common.cancel">キャンセル</button>
+          <button type="submit" class="btn-primary" id="fr-submit-btn" data-i18n="feature_request.submit">送信</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
   <script src="js/main.js"></script>
   <script>
     // ========== v2: Session & User ==========
